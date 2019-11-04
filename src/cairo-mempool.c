@@ -90,6 +90,8 @@ free_bits (cairo_mempool_t *pool, size_t start, int bits, cairo_bool_t clear)
 	pool->max_free_bits = bits;
 }
 
+#pragma GCC diagnostic ignored "-Wunsafe-loop-optimizations"
+
 /* Add a chunk to the free list */
 static void
 free_blocks (cairo_mempool_t *pool,

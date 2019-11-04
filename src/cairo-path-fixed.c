@@ -1517,6 +1517,7 @@ _cairo_path_fixed_iter_is_fill_box (cairo_path_fixed_iter_t *_iter,
     switch (iter.buf->op[iter.n_op]) {
     case CAIRO_PATH_OP_CLOSE_PATH:
 	_cairo_path_fixed_iter_next_op (&iter);
+	// fall through
     case CAIRO_PATH_OP_MOVE_TO: /* implicit close */
 	box->p1 = box->p2 = points[0];
 	*_iter = iter;

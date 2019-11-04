@@ -307,6 +307,7 @@ join (struct stroker *stroker,
 	break;
 
     case CAIRO_LINE_JOIN_MITER:
+    // fall through
     default: {
 	/* dot product of incoming slope vector with outgoing slope vector */
 	double in_dot_out = (-in->usr_vector.x * out->usr_vector.x +
@@ -461,6 +462,7 @@ join (struct stroker *stroker,
 	/* fall through ... */
     }
 
+    // fall through
     case CAIRO_LINE_JOIN_BEVEL: {
 	cairo_point_t t[] = { { in->point.x, in->point.y }, { inpt->x, inpt->y }, { outpt->x, outpt->y } };
 	cairo_point_t e[] = { { in->cw.x, in->cw.y }, { in->ccw.x, in->ccw.y },

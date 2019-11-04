@@ -408,6 +408,7 @@ outer_close (struct stroker *stroker,
 		     clockwise, outer);
 	    break;
 	}
+	// fall through
 
     case CAIRO_LINE_JOIN_MITER:
     default: {

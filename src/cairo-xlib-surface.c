@@ -1717,6 +1717,8 @@ _cairo_surface_is_xlib (cairo_surface_t *surface)
     return surface->backend == &cairo_xlib_surface_backend;
 }
 
+#pragma GCC diagnostic ignored "-Wunsafe-loop-optimizations"
+
 static cairo_surface_t *
 _cairo_xlib_surface_create_internal (cairo_xlib_screen_t	*screen,
 				     Drawable			 drawable,

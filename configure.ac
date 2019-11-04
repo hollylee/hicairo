@@ -880,8 +880,13 @@ AM_CONDITIONAL(BUILD_CXX, test "x$need_cxx" = "xyes")
 dnl ===========================================================================
 
 # We use GTK+ for some utility/debugging tools
-PKG_CHECK_MODULES(gtk, "gtk+-2.0",have_gtk=yes, have_gtk=no)
+PKG_CHECK_MODULES(gtk, "gtk+-2.0", have_gtk=yes, have_gtk=no)
 AM_CONDITIONAL(HAVE_GTK, test "x$have_gtk" = "xyes")
+
+dnl ===========================================================================
+if test "$ac_cv_prog_gcc" = "yes"; then
+    CFLAGS="$CFLAGS -Wall -Werror -fmax-errors=10"
+fi
 
 AC_CONFIG_FILES([
 Makefile

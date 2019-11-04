@@ -161,11 +161,11 @@ _cairo_xlib_init_screen_font_options (Display *dpy,
 
     if (!get_integer_default (dpy, "rgba", &xft_rgba))
     {
+#if RENDER_MAJOR > 0 || RENDER_MINOR >= 6
         cairo_xlib_display_t *display = (cairo_xlib_display_t *) info->device;
 
 	xft_rgba = FC_RGBA_UNKNOWN;
 
-#if RENDER_MAJOR > 0 || RENDER_MINOR >= 6
         if (display->render_major > 0 || display->render_minor >= 6) {
 	    int render_order = XRenderQuerySubpixelOrder (dpy,
 							  XScreenNumberOfScreen (info->screen));
@@ -192,6 +192,8 @@ _cairo_xlib_init_screen_font_options (Display *dpy,
 		break;
 	    }
 	}
+#else
+	xft_rgba = FC_RGBA_UNKNOWN;
 #endif
     }
 
