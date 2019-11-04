@@ -40,6 +40,7 @@
 #include "cairo-drm-i965-private.h"
 #include "cairo-surface-subsurface-private.h"
 #include "cairo-surface-snapshot-private.h"
+#include "cairo-image-surface-private.h"
 
 #include "cairo-drm-intel-brw-eu.h"
 

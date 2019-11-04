@@ -765,7 +765,11 @@ intel_device_fini (intel_device_t *device)
 				   &device->fonts,
 				   link)
     {
+#if 0
 	_cairo_scaled_font_revoke_ownership (scaled_font);
+#else
+	_cairo_scaled_font_fini (scaled_font);
+#endif
     }
 
     for (n = 0; n < ARRAY_LENGTH (device->glyph_cache); n++)
@@ -892,10 +896,18 @@ intel_glyph_cache_add_glyph (intel_device_t *device,
 	return _cairo_error (CAIRO_STATUS_INVALID_FORMAT);
     }
 
+#if 0
     scaled_glyph->surface_private = node;
+#else
+    scaled_glyph->dev_private = node;
+#endif
 
     glyph= (intel_glyph_t *) node;
+#if 0
     glyph->node.owner = &scaled_glyph->surface_private;
+#else
+    glyph->node.parent = &scaled_glyph->dev_private;
+#endif
     glyph->cache = cache;
 
     /* compute tex coords: bottom-right, bottom-left, top-left */
@@ -923,10 +935,14 @@ intel_scaled_glyph_fini (cairo_scaled_glyph_t *scaled_glyph,
 {
     intel_glyph_t *glyph;
 
+#if 0
     glyph = scaled_glyph->surface_private;
+#else
+    glyph = scaled_glyph->dev_private;
+#endif
     if (glyph != NULL) {
 	/* XXX thread-safety? Probably ok due to the frozen scaled-font. */
-	glyph->node.owner = NULL;
+	glyph->node.parent = NULL;
 	if (! glyph->node.pinned)
 	    _cairo_rtree_node_remove (&glyph->cache->rtree, &glyph->node);
     }
@@ -936,6 +952,14 @@ void
 intel_scaled_font_fini (cairo_scaled_font_t *scaled_font)
 {
     cairo_list_del (&scaled_font->link);
+}
+
+static void
+intel_node_destroy (cairo_rtree_node_t *node)
+{
+    // FIXME: do something to destroy the rtree node
+    fprintf(stderr, "%s: do something to destroy the rtree node: %p\n",
+        __func__, node);
 }
 
 static cairo_status_t
@@ -974,7 +998,8 @@ intel_get_glyph_cache (intel_device_t *device,
 	_cairo_rtree_init (&cache->rtree,
 			   INTEL_GLYPH_CACHE_WIDTH,
 			   INTEL_GLYPH_CACHE_HEIGHT,
-			   0, sizeof (intel_glyph_t));
+			   0, sizeof (intel_glyph_t),
+			   intel_node_destroy);
     }
 
     *out = cache;

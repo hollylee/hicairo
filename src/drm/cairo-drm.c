@@ -40,6 +40,8 @@
 #define LIBUDEV_I_KNOW_THE_API_IS_SUBJECT_TO_CHANGE
 #include <libudev.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h> /* open(), close() */
 
 static cairo_drm_device_t *_cairo_drm_known_devices;

@@ -164,6 +164,7 @@ i965_surface_mask_internal (i965_surface_t *dst,
     shader.mask.base.stride = mask->intel.drm.stride;
 
     if (clip != NULL) {
+#if 0
 	status = _cairo_clip_get_region (clip, &clip_region);
 	assert (status == CAIRO_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
 
@@ -172,6 +173,11 @@ i965_surface_mask_internal (i965_surface_t *dst,
 
 	if (status == CAIRO_INT_STATUS_UNSUPPORTED)
 	    i965_shader_set_clip (&shader, clip);
+#else /* FIXME */
+	clip_region = _cairo_clip_get_region (clip);
+	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
+	    clip_region = NULL;
+#endif
     }
 
     status = cairo_device_acquire (dst->intel.drm.base.device);
@@ -230,7 +236,7 @@ i965_surface_glyphs (void			*abstract_surface,
     i965_device_t *device;
     i965_glyphs_t glyphs;
     cairo_composite_rectangles_t extents;
-    cairo_clip_t local_clip;
+    cairo_clip_t *local_clip;
     cairo_bool_t have_clip = FALSE;
     cairo_bool_t overlap;
     cairo_region_t *clip_region = NULL;
@@ -242,8 +248,12 @@ i965_surface_glyphs (void			*abstract_surface,
 
     *num_remaining = 0;
     status = _cairo_composite_rectangles_init_for_glyphs (&extents,
+#if 0
 							  surface->intel.drm.width,
 							  surface->intel.drm.height,
+#else
+							  &surface->intel.drm.base,
+#endif
 							  op, source,
 							  scaled_font,
 							  g, num_glyphs,
@@ -256,10 +266,15 @@ i965_surface_glyphs (void			*abstract_surface,
 	clip = NULL;
 
     if (clip != NULL && extents.is_bounded) {
+#if 0
 	clip = _cairo_clip_init_copy (&local_clip, clip);
 	status = _cairo_clip_rectangle (clip, &extents.bounded);
 	if (unlikely (status))
 	    return status;
+#else
+	local_clip = _cairo_clip_copy (clip);
+	clip = _cairo_clip_intersect_rectangle (clip, &extents.bounded);
+#endif
 
 	have_clip = TRUE;
     }
@@ -311,11 +326,15 @@ i965_surface_glyphs (void			*abstract_surface,
 	    return status;
 
 	if (clip != NULL) {
+#if 0
 	    status = _cairo_clip_get_region (clip, &clip_region);
 	    assert (status == CAIRO_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
 
 	    if (status == CAIRO_INT_STATUS_UNSUPPORTED)
 		i965_shader_set_clip (&glyphs.shader, clip);
+#else   /* FIXME */
+	    clip_region = _cairo_clip_get_region (clip);
+#endif
 	}
     }
 
@@ -345,11 +364,16 @@ i965_surface_glyphs (void			*abstract_surface,
 
     _cairo_scaled_font_freeze_cache (scaled_font);
     //private = _cairo_scaled_font_get_device (scaled_font, device);
+#if 0
     if (scaled_font->surface_private == NULL) {
 	scaled_font->surface_private = device;
 	scaled_font->surface_backend = surface->intel.drm.base.backend;
 	cairo_list_add (&scaled_font->link, &device->intel.fonts);
     }
+#else /* FIXME */
+    if (cairo_list_is_empty (&scaled_font->link))
+	cairo_list_add (&scaled_font->link, &device->intel.fonts);
+#endif
 
     memset (glyph_cache, 0, sizeof (glyph_cache));
 
@@ -396,7 +420,7 @@ i965_surface_glyphs (void			*abstract_surface,
 	    continue;
 	}
 
-	if (scaled_glyph->surface_private == NULL) {
+	if (scaled_glyph->dev_private == NULL) {
 	    status = intel_get_glyph (&device->intel, scaled_font, scaled_glyph);
 	    if (unlikely (status == CAIRO_INT_STATUS_NOTHING_TO_DO)) {
 		status = CAIRO_STATUS_SUCCESS;
@@ -405,7 +429,7 @@ i965_surface_glyphs (void			*abstract_surface,
 	    if (unlikely (status))
 		goto FINISH;
 	}
-	glyph = intel_glyph_pin (scaled_glyph->surface_private);
+	glyph = intel_glyph_pin (scaled_glyph->dev_private);
 
 	if (glyph->cache->buffer.bo != last_bo) {
 	    intel_buffer_cache_t *cache = glyph->cache;
@@ -498,7 +522,7 @@ i965_surface_glyphs (void			*abstract_surface,
     }
 
     if (have_clip)
-	_cairo_clip_fini (&local_clip);
+	_cairo_clip_destroy (&local_clip);
 
     return status;
 }

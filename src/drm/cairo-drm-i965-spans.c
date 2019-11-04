@@ -305,6 +305,7 @@ i965_spans_init (i965_spans_t *spans,
     if (clip != NULL) {
 	cairo_region_t *clip_region = NULL;
 
+#if 0
 	status = _cairo_clip_get_region (clip, &clip_region);
 	assert (status == CAIRO_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
 
@@ -314,6 +315,13 @@ i965_spans_init (i965_spans_t *spans,
 	spans->clip_region = clip_region;
 	if (status == CAIRO_INT_STATUS_UNSUPPORTED)
 	    i965_shader_set_clip (&spans->shader, clip);
+#else
+	clip_region = _cairo_clip_get_region (clip);
+	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
+	    clip_region = NULL;
+
+	spans->clip_region = clip_region;
+#endif
     }
 
     spans->head.next  = NULL;

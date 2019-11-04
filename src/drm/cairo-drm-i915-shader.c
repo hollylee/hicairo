@@ -1490,7 +1490,7 @@ i915_shader_acquire_surface (i915_shader_t *shader,
     extend = pattern->base.extend;
     src->base.matrix = pattern->base.matrix;
     filter = pattern->base.filter;
-    _cairo_pattern_sampled_area(&pattern->base, extents, sample);
+    _cairo_pattern_sampled_area(&pattern->base, extents, &sample);
 
     if (surface->type == CAIRO_SURFACE_TYPE_DRM) {
 	if (surface->backend->type == CAIRO_SURFACE_TYPE_SUBSURFACE) {

@@ -100,7 +100,7 @@ radeon_surface_acquire_source_image (void *abstract_surface,
 	goto DONE;
 
     if (surface->base.base.backend->flush != NULL) {
-	status = surface->base.base.backend->flush (surface);
+	status = surface->base.base.backend->flush (surface, 0);
 	if (unlikely (status))
 	    return status;
     }
@@ -137,7 +137,7 @@ radeon_surface_map_to_image (radeon_surface_t *surface)
 	void *ptr;
 
 	if (surface->base.base.backend->flush != NULL) {
-	    status = surface->base.base.backend->flush (surface);
+	    status = surface->base.base.backend->flush (surface, 0);
 	    if (unlikely (status))
 		return _cairo_surface_create_in_error (status);
 	}
