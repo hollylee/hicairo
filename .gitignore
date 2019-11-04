@@ -28,3 +28,10 @@ Makefile.in
 /src/cairo-supported-features.h
 /util/cairo-trace/cairo-trace
 
+/boilerplate/Makefile.am.features
+/boilerplate/Makefile.win32.features
+/build/Makefile.win32.features
+/build/Makefile.win32.features-h
+/src/Makefile.am.features
+/src/Makefile.win32.features
+
