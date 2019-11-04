@@ -62,9 +62,15 @@ cairo_drm_surface_create (cairo_device_t *device,
 			  int width, int height);
 
 cairo_public cairo_surface_t *
+cairo_drm_surface_create_for_handle (cairo_device_t *device,
+				   unsigned int handle,
+				   cairo_format_t format,
+				   int width, int height, int stride);
+
+cairo_public cairo_surface_t *
 cairo_drm_surface_create_for_name (cairo_device_t *device,
 				   unsigned int name,
-	                           cairo_format_t format,
+				   cairo_format_t format,
 				   int width, int height, int stride);
 
 cairo_public cairo_surface_t *

@@ -67,8 +67,14 @@ typedef cairo_surface_t *
 				    int width, int height);
 
 typedef cairo_surface_t *
+(*cairo_drm_surface_create_for_handle_func_t) (cairo_drm_device_t *device,
+					       unsigned int handle,
+					       cairo_format_t format,
+					       int width, int height, int stride);
+
+typedef cairo_surface_t *
 (*cairo_drm_surface_create_for_name_func_t) (cairo_drm_device_t *device,
-				             unsigned int name,
+					     unsigned int name,
 					     cairo_format_t format,
 					     int width, int height, int stride);
 
@@ -97,6 +103,7 @@ typedef struct _cairo_drm_device_backend {
 
 typedef struct _cairo_drm_surface_backend {
     cairo_drm_surface_create_func_t create;
+    cairo_drm_surface_create_for_handle_func_t create_for_handle;
     cairo_drm_surface_create_for_name_func_t create_for_name;
     cairo_drm_surface_create_from_cacheable_image_func_t create_from_cacheable_image;
     cairo_drm_surface_flink_func_t flink;
@@ -229,6 +236,7 @@ slim_hidden_proto (cairo_drm_device_default);
 slim_hidden_proto (cairo_drm_device_get);
 slim_hidden_proto (cairo_drm_device_get_for_fd);
 
+slim_hidden_proto (cairo_drm_surface_create_for_handle);
 slim_hidden_proto (cairo_drm_surface_create_for_name);
 
 cairo_private cairo_bool_t
