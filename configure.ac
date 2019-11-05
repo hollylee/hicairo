@@ -885,7 +885,7 @@ AM_CONDITIONAL(HAVE_GTK, test "x$have_gtk" = "xyes")
 
 dnl ===========================================================================
 if test "$ac_cv_prog_gcc" = "yes"; then
-    CFLAGS="$CFLAGS -Wall -Werror -fmax-errors=10"
+    CFLAGS="$CFLAGS -Wall -fmax-errors=9"
 fi
 
 AC_CONFIG_FILES([

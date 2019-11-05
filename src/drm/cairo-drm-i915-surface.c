@@ -285,7 +285,7 @@ i915_bo_exec (i915_device_t *device, intel_bo_t *bo, uint32_t offset)
     device->batch.est_gtt_size = I915_BATCH_SIZE;
     device->batch.total_gtt_size = I915_BATCH_SIZE;
 
-    return ret == 0 ? CAIRO_STATUS_SUCCESS : _cairo_error (CAIRO_STATUS_NO_MEMORY);
+    return ret == 0 ? CAIRO_INT_STATUS_SUCCESS : _cairo_error (CAIRO_INT_STATUS_NO_MEMORY);
 }
 
 void
@@ -776,7 +776,7 @@ CLEANUP:
 cairo_status_t
 i915_fixup_unbounded (i915_surface_t *dst,
 		      const cairo_composite_rectangles_t *extents,
-		      cairo_clip_t *clip)
+		      const cairo_clip_t *clip)
 {
     i915_shader_t shader;
     i915_device_t *device;
@@ -883,7 +883,7 @@ i915_fixup_unbounded (i915_surface_t *dst,
 static cairo_status_t
 i915_fixup_unbounded_boxes (i915_surface_t *dst,
 			    const cairo_composite_rectangles_t *extents,
-			    cairo_clip_t *clip,
+			    const cairo_clip_t *clip,
 			    cairo_boxes_t *boxes)
 {
     cairo_boxes_t clear;
@@ -1079,6 +1079,9 @@ i915_blt (i915_surface_t *src,
     default:
     case CAIRO_FORMAT_INVALID:
     case CAIRO_FORMAT_A1:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
 	ASSERT_NOT_REACHED;
     case CAIRO_FORMAT_A8:
 	break;
@@ -1158,6 +1161,9 @@ i915_clear_boxes (i915_surface_t *dst,
     switch (dst->intel.drm.format) {
     default:
     case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
     case CAIRO_FORMAT_A1:
 	ASSERT_NOT_REACHED;
     case CAIRO_FORMAT_A8:
@@ -1167,6 +1173,7 @@ i915_clear_boxes (i915_surface_t *dst,
 	break;
     case CAIRO_FORMAT_RGB24:
 	clear = 0xff000000;
+	// fall through
     case CAIRO_FORMAT_ARGB32:
 	br13 |= BR13_8888;
 	cmd |= XY_BLT_WRITE_ALPHA | XY_BLT_WRITE_RGB;
@@ -1296,6 +1303,9 @@ i915_blt_boxes (i915_surface_t *dst,
     if (! i915_can_blt (dst, pattern))
 	return CAIRO_INT_STATUS_UNSUPPORTED;
 
+    tx = _cairo_lround (pattern->matrix.x0);
+    ty = _cairo_lround (pattern->matrix.y0);
+
     spattern = (const cairo_surface_pattern_t *) pattern;
     src = (i915_surface_t *) spattern->surface;
 
@@ -1315,14 +1325,13 @@ i915_blt_boxes (i915_surface_t *dst,
     if (unlikely (status))
 	return status;
 
-    tx = _cairo_lround (pattern->matrix.x0);
-    ty = _cairo_lround (pattern->matrix.y0);
-
     device = i915_device (dst);
     if (to_intel_bo (src->intel.drm.bo)->tiling == I915_TILING_Y) {
+	cairo_box_t limits;
 	cairo_rectangle_int_t extents;
 
-	_cairo_boxes_extents (boxes, &extents);
+	_cairo_boxes_extents (boxes, &limits);
+	_cairo_box_round_to_rectangle (&limits, &extents);
 	extents.x += tx;
 	extents.y += ty;
 
@@ -1355,6 +1364,9 @@ i915_blt_boxes (i915_surface_t *dst,
     switch (dst->intel.drm.format) {
     default:
     case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
     case CAIRO_FORMAT_A1:
 	ASSERT_NOT_REACHED;
     case CAIRO_FORMAT_A8:
@@ -1414,7 +1426,7 @@ CLEANUP_SURFACE:
     return status;
 }
 
-static cairo_status_t
+static cairo_int_status_t
 _upload_image_inplace (i915_surface_t *surface,
 		       const cairo_pattern_t *source,
 		       const cairo_rectangle_int_t *extents,
@@ -1571,21 +1583,21 @@ _upload_image_inplace (i915_surface_t *surface,
 	pixman_image_unref (dst);
     }
 
-    return CAIRO_STATUS_SUCCESS;
+    return CAIRO_INT_STATUS_SUCCESS;
 }
 
-static cairo_status_t
+static cairo_int_status_t
 _composite_boxes (i915_surface_t *dst,
 		  cairo_operator_t op,
 		  const cairo_pattern_t *pattern,
 		  cairo_boxes_t *boxes,
 		  cairo_antialias_t antialias,
-		  cairo_clip_t *clip,
+		  const cairo_clip_t *clip,
 		  double opacity,
 		  const cairo_composite_rectangles_t *extents)
 {
     const struct _cairo_boxes_chunk *chunk;
-    cairo_status_t status;
+    cairo_int_status_t status;
     i915_shader_t shader;
     i915_device_t *device;
     int i;
@@ -1700,6 +1712,9 @@ i915_surface_clear (i915_surface_t *dst)
 	switch (dst->intel.drm.format) {
 	default:
 	case CAIRO_FORMAT_INVALID:
+	case CAIRO_FORMAT_RGB30:
+	case CAIRO_FORMAT_RGB96F:
+	case CAIRO_FORMAT_RGBA128F:
 	case CAIRO_FORMAT_A1:
 	    ASSERT_NOT_REACHED;
 	case CAIRO_FORMAT_A8:
@@ -1709,6 +1724,7 @@ i915_surface_clear (i915_surface_t *dst)
 	    break;
 	case CAIRO_FORMAT_RGB24:
 	    clear = 0xff000000;
+	    // fall through
 	case CAIRO_FORMAT_ARGB32:
 	    br13 |= BR13_8888;
 	    cmd |= XY_BLT_WRITE_ALPHA | XY_BLT_WRITE_RGB;
@@ -1781,10 +1797,10 @@ _clip_and_composite_boxes (i915_surface_t *dst,
 			   cairo_boxes_t *boxes,
 			   cairo_antialias_t antialias,
 			   const cairo_composite_rectangles_t *extents,
-			   cairo_clip_t *clip,
+			   const cairo_clip_t *clip,
 			   double opacity)
 {
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     if (boxes->num_boxes == 0) {
 	if (extents->is_bounded)
@@ -1828,11 +1844,11 @@ _clip_and_composite_boxes (i915_surface_t *dst,
 					  extents, clip, opacity);
 }
 
-static cairo_clip_path_t *
-_clip_get_solitary_path (cairo_clip_t *clip)
+static const cairo_clip_path_t *
+_clip_get_solitary_path (const cairo_clip_t *clip)
 {
-    cairo_clip_path_t *iter = clip->path;
-    cairo_clip_path_t *path = NULL;
+    const cairo_clip_path_t *iter = clip->path;
+    const cairo_clip_path_t *path = NULL;
 
     do {
 	cairo_box_t box;
@@ -1892,11 +1908,11 @@ static cairo_int_status_t
 i915_surface_fill_with_alpha (void			*abstract_dst,
 			      cairo_operator_t		 op,
 			      const cairo_pattern_t	*source,
-			      cairo_path_fixed_t	*path,
+			      const cairo_path_fixed_t	*path,
 			      cairo_fill_rule_t		 fill_rule,
 			      double			 tolerance,
 			      cairo_antialias_t		 antialias,
-			      cairo_clip_t		*clip,
+			      const cairo_clip_t	*clip,
 			      double			 opacity)
 {
     i915_surface_t *dst = abstract_dst;
@@ -1911,7 +1927,7 @@ i915_surface_fill_with_alpha (void			*abstract_dst,
 #endif
     cairo_clip_t* local_clip;
     cairo_bool_t have_clip = FALSE;
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_fill (&extents,
 #if 0
@@ -1929,7 +1945,7 @@ i915_surface_fill_with_alpha (void			*abstract_dst,
 	clip = NULL;
 
     if (extents.is_bounded && clip != NULL) {
-	cairo_clip_path_t *clip_path;
+	const cairo_clip_path_t *clip_path;
 
 	if (((clip_path = _clip_get_solitary_path (clip)) != NULL) &&
 	    _cairo_path_fixed_equal (&clip_path->path, path))
@@ -1967,7 +1983,7 @@ i915_surface_fill_with_alpha (void			*abstract_dst,
 							      fill_rule,
 							      antialias,
 							      &boxes);
-	if (likely (status == CAIRO_STATUS_SUCCESS)) {
+	if (likely (status == CAIRO_INT_STATUS_SUCCESS)) {
 	    status = _clip_and_composite_boxes (dst, op, source,
 						&boxes, antialias,
 						&extents, clip,
@@ -2026,14 +2042,14 @@ static cairo_int_status_t
 i915_surface_paint_with_alpha (void			*abstract_dst,
 			       cairo_operator_t		 op,
 			       const cairo_pattern_t	*source,
-			       cairo_clip_t		*clip,
+			       const cairo_clip_t	*clip,
 			       double			 opacity)
 {
     i915_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
     cairo_clip_t *local_clip;
     cairo_bool_t have_clip = FALSE;
-    cairo_clip_path_t *clip_path;
+    const cairo_clip_path_t *clip_path;
     cairo_boxes_t boxes;
 #if 0
     int num_boxes = ARRAY_LENGTH (boxes.boxes_embedded);
@@ -2042,7 +2058,7 @@ i915_surface_paint_with_alpha (void			*abstract_dst,
     int num_boxes;
     cairo_box_t *clip_boxes;
 #endif
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_paint (&extents,
 #if 0
@@ -2116,7 +2132,7 @@ static cairo_int_status_t
 i915_surface_paint (void			*abstract_dst,
 		    cairo_operator_t		 op,
 		    const cairo_pattern_t	*source,
-		    cairo_clip_t		*clip)
+		    const cairo_clip_t		*clip)
 {
     i915_surface_t *dst = abstract_dst;
 
@@ -2124,7 +2140,7 @@ i915_surface_paint (void			*abstract_dst,
 
     if (op == CAIRO_OPERATOR_CLEAR && clip == NULL) {
 	dst->deferred_clear = TRUE;
-	return CAIRO_STATUS_SUCCESS;
+	return CAIRO_INT_STATUS_SUCCESS;
     }
 
     return i915_surface_paint_with_alpha (dst, op, source, clip, 1.);
@@ -2135,7 +2151,7 @@ i915_surface_mask (void				*abstract_dst,
 		   cairo_operator_t		 op,
 		   const cairo_pattern_t	*source,
 		   const cairo_pattern_t	*mask,
-		   cairo_clip_t			*clip)
+		   const cairo_clip_t		*clip)
 {
     i915_surface_t *dst = abstract_dst;
     i915_device_t *device;
@@ -2144,7 +2160,7 @@ i915_surface_mask (void				*abstract_dst,
     cairo_clip_t* local_clip;
     cairo_region_t *clip_region = NULL;
     cairo_bool_t have_clip = FALSE;
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     if (mask->type == CAIRO_PATTERN_TYPE_SOLID) {
 	const cairo_solid_pattern_t *solid = (cairo_solid_pattern_t *) mask;
@@ -2175,7 +2191,8 @@ i915_surface_mask (void				*abstract_dst,
 	}
 #else
 	local_clip = _cairo_clip_copy (clip);
-	clip = _cairo_clip_intersect_rectangle (clip, &extents.bounded);
+	local_clip = _cairo_clip_intersect_rectangle (local_clip, &extents.bounded);
+	clip = local_clip;
 #endif
 
 	have_clip = TRUE;
@@ -2218,7 +2235,7 @@ i915_surface_mask (void				*abstract_dst,
 	    cairo_rectangle_int_t rect;
 	    cairo_bool_t is_empty;
 
-	    status = CAIRO_STATUS_SUCCESS;
+	    status = CAIRO_INT_STATUS_SUCCESS;
 	    cairo_region_get_extents (clip_region, &rect);
 	    is_empty = ! _cairo_rectangle_intersect (&extents.unbounded, &rect);
 	    if (unlikely (is_empty))
@@ -2290,13 +2307,13 @@ static cairo_int_status_t
 i915_surface_stroke (void			*abstract_dst,
 		     cairo_operator_t		 op,
 		     const cairo_pattern_t	*source,
-		     cairo_path_fixed_t		*path,
+		     const cairo_path_fixed_t	*path,
 		     const cairo_stroke_style_t	*stroke_style,
 		     const cairo_matrix_t	*ctm,
 		     const cairo_matrix_t	*ctm_inverse,
 		     double			 tolerance,
 		     cairo_antialias_t		 antialias,
-		     cairo_clip_t		*clip)
+		     const cairo_clip_t		*clip)
 {
     i915_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
@@ -2310,7 +2327,7 @@ i915_surface_stroke (void			*abstract_dst,
 #endif
     cairo_clip_t* local_clip;
     cairo_bool_t have_clip = FALSE;
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_stroke (&extents,
 #if 0
@@ -2356,7 +2373,7 @@ i915_surface_stroke (void			*abstract_dst,
 								ctm,
 								antialias,
 								&boxes);
-	if (likely (status == CAIRO_STATUS_SUCCESS)) {
+	if (likely (status == CAIRO_INT_STATUS_SUCCESS)) {
 	    status = _clip_and_composite_boxes (dst, op, source,
 						&boxes, antialias,
 						&extents, clip, 1.);
@@ -2418,49 +2435,68 @@ static cairo_int_status_t
 i915_surface_fill (void			*abstract_dst,
 		   cairo_operator_t	 op,
 		   const cairo_pattern_t*source,
-		   cairo_path_fixed_t	*path,
+		   const cairo_path_fixed_t	*path,
 		   cairo_fill_rule_t	 fill_rule,
 		   double		 tolerance,
 		   cairo_antialias_t	 antialias,
-		   cairo_clip_t		*clip)
+		   const cairo_clip_t	*clip)
 {
     return i915_surface_fill_with_alpha (abstract_dst, op, source, path, fill_rule, tolerance, antialias, clip, 1.);
 }
 
 static const cairo_surface_backend_t i915_surface_backend = {
     CAIRO_SURFACE_TYPE_DRM,
+
+    i915_surface_finish,
     _cairo_default_context_create,
 
     i915_surface_create_similar,
-    i915_surface_finish,
+    NULL, /* create_similar_image */
 
-    NULL,
+    NULL, /* map_to_image */
+    NULL, /* unmap_image */
+
+    NULL, /* source */
+
     intel_surface_acquire_source_image,
     intel_surface_release_source_image,
 
-    NULL, NULL, NULL,
+    NULL, /* snapshot */
+    NULL, /* copy_page */
+    NULL, /* show_page */
+
+    _cairo_drm_surface_get_extents,
+
+    _cairo_drm_surface_get_font_options,
+
+    i915_surface_flush,
+
+    NULL, /* mark_dirty_rectangle */
+
+    i915_surface_paint,
+    i915_surface_mask,
+    i915_surface_stroke,
+    i915_surface_fill,
+    NULL, /* fill_stroke */
+
+    i915_surface_show_glyphs,
+    NULL, /* has_show_text_glyphs */
+    NULL, /* show_text_glyphs */
+    NULL, /* get_supported_mime_types */
+    NULL, /* tag */
+
+#if 0
     NULL, /* composite */
     NULL, /* fill */
     NULL, /* trapezoids */
     NULL, /* span */
     NULL, /* check-span */
 
-    NULL, /* copy_page */
-    NULL, /* show_page */
-    _cairo_drm_surface_get_extents,
     NULL, /* old-glyphs */
-    _cairo_drm_surface_get_font_options,
 
-    i915_surface_flush,
-    NULL, /* mark_dirty */
     intel_scaled_font_fini,
     intel_scaled_glyph_fini,
-
-    i915_surface_paint,
-    i915_surface_mask,
-    i915_surface_stroke,
-    i915_surface_fill,
-    i915_surface_glyphs,
+#endif
 };
 
 static void
@@ -2476,6 +2512,9 @@ i915_surface_init (i915_surface_t *surface,
     default:
     case CAIRO_FORMAT_INVALID:
     case CAIRO_FORMAT_A1:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
 	ASSERT_NOT_REACHED;
     case CAIRO_FORMAT_ARGB32:
 	surface->map0 = MAPSURF_32BIT | MT_32BIT_ARGB8888;
@@ -2516,11 +2555,11 @@ i915_surface_create_internal (cairo_drm_device_t *base_dev,
 			      cairo_bool_t gpu_target)
 {
     i915_surface_t *surface;
-    cairo_status_t status_ignored;
+    cairo_int_status_t status_ignored;
 
     surface = _cairo_malloc (sizeof (i915_surface_t));
     if (unlikely (surface == NULL))
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_NO_MEMORY));
 
     i915_surface_init (surface, base_dev, format, width, height);
 
@@ -2555,7 +2594,7 @@ i915_surface_create_internal (cairo_drm_device_t *base_dev,
 	if (height > 64*1024) {
 	    free (surface);
 	    cairo_device_destroy (&base_dev->base);
-	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_SIZE));
+	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_INVALID_SIZE));
 	}
 
 	size = stride * height;
@@ -2565,7 +2604,7 @@ i915_surface_create_internal (cairo_drm_device_t *base_dev,
 	if (bo == NULL) {
 	    status_ignored = _cairo_drm_surface_finish (&surface->intel.drm);
 	    free (surface);
-	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_NO_MEMORY));
 	}
 	assert (bo->base.size >= size);
 
@@ -2591,9 +2630,12 @@ i915_surface_create (cairo_drm_device_t *base_dev,
     case CAIRO_FORMAT_A8:
 	break;
     case CAIRO_FORMAT_INVALID:
-    default:
     case CAIRO_FORMAT_A1:
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
+    default:
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_INVALID_FORMAT));
     }
 
     return i915_surface_create_internal (base_dev, format, width, height,
@@ -2613,14 +2655,17 @@ i915_surface_create_for_name (cairo_drm_device_t *base_dev,
     if (stride < cairo_format_stride_for_width (format, (width + 3) & -4) ||
 	stride & 31)
     {
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_STRIDE));
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_INVALID_STRIDE));
     }
 
     switch (format) {
     default:
     case CAIRO_FORMAT_INVALID:
     case CAIRO_FORMAT_A1:
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_INVALID_FORMAT));
     case CAIRO_FORMAT_ARGB32:
     case CAIRO_FORMAT_RGB16_565:
     case CAIRO_FORMAT_RGB24:
@@ -2630,7 +2675,7 @@ i915_surface_create_for_name (cairo_drm_device_t *base_dev,
 
     surface = _cairo_malloc (sizeof (i915_surface_t));
     if (unlikely (surface == NULL))
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_NO_MEMORY));
 
     i915_surface_init (surface, base_dev, format, width, height);
 
@@ -2643,7 +2688,7 @@ i915_surface_create_for_name (cairo_drm_device_t *base_dev,
 				       name)->base;
 	if (unlikely (surface->intel.drm.bo == NULL)) {
 	    free (surface);
-	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_NO_MEMORY));
 	}
 	to_intel_bo (surface->intel.drm.bo)->stride = stride;
 
@@ -2653,7 +2698,7 @@ i915_surface_create_for_name (cairo_drm_device_t *base_dev,
     return &surface->intel.drm.base;
 }
 
-static cairo_status_t
+static cairo_int_status_t
 i915_buffer_cache_init (intel_buffer_cache_t *cache,
 		        i915_device_t *device,
 			cairo_format_t format,
@@ -2669,6 +2714,9 @@ i915_buffer_cache_init (intel_buffer_cache_t *cache,
 
     switch (format) {
     case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
     case CAIRO_FORMAT_A1:
     case CAIRO_FORMAT_RGB24:
     case CAIRO_FORMAT_RGB16_565:
@@ -2690,7 +2738,7 @@ i915_buffer_cache_init (intel_buffer_cache_t *cache,
     assert (i915_tiling_size (tiling, size) == size);
     cache->buffer.bo = intel_bo_create (&device->intel, size, size, FALSE, tiling, stride);
     if (unlikely (cache->buffer.bo == NULL))
-	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
+	return _cairo_error (CAIRO_INT_STATUS_NO_MEMORY);
 
     cache->buffer.stride = cache->buffer.bo->stride;
 
@@ -2702,7 +2750,7 @@ i915_buffer_cache_init (intel_buffer_cache_t *cache,
     cache->ref_count = 0;
     cairo_list_init (&cache->link);
 
-    return CAIRO_STATUS_SUCCESS;
+    return CAIRO_INT_STATUS_SUCCESS;
 }
 
 static void
@@ -2718,7 +2766,7 @@ i915_surface_create_from_cacheable_image_internal (i915_device_t *device,
 						   cairo_image_surface_t *image)
 {
     i915_surface_t *surface;
-    cairo_status_t status;
+    cairo_int_status_t status;
     cairo_list_t *caches;
     intel_buffer_cache_t *cache;
     cairo_rtree_node_t *node;
@@ -2774,9 +2822,12 @@ i915_surface_create_from_cacheable_image_internal (i915_device_t *device,
 	bpp = 1;
 	break;
     case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
     default:
 	ASSERT_NOT_REACHED;
-	status = _cairo_error (CAIRO_STATUS_INVALID_FORMAT);
+	status = _cairo_error (CAIRO_INT_STATUS_INVALID_FORMAT);
 	goto CLEANUP_DEVICE;
     }
 
@@ -2786,15 +2837,15 @@ i915_surface_create_from_cacheable_image_internal (i915_device_t *device,
 	    continue;
 
 	status = _cairo_rtree_insert (&cache->rtree, width, height, &node);
-	if (unlikely (_cairo_status_is_error (status)))
+	if (unlikely (_cairo_int_status_is_error (status)))
 	    goto CLEANUP_DEVICE;
-	if (status == CAIRO_STATUS_SUCCESS)
+	if (status == CAIRO_INT_STATUS_SUCCESS)
 	    break;
     }
     if (node == NULL) {
 	cache = _cairo_malloc (sizeof (intel_buffer_cache_t));
 	if (unlikely (cache == NULL)) {
-	    status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+	    status = _cairo_error (CAIRO_INT_STATUS_NO_MEMORY);
 	    goto CLEANUP_DEVICE;
 	}
 
@@ -2814,7 +2865,7 @@ i915_surface_create_from_cacheable_image_internal (i915_device_t *device,
 			   i915_node_destroy);
 
 	status = _cairo_rtree_insert (&cache->rtree, width, height, &node);
-	assert (status == CAIRO_STATUS_SUCCESS);
+	assert (status == CAIRO_INT_STATUS_SUCCESS);
 
 	cairo_list_init (&cache->link);
     }
@@ -2832,7 +2883,7 @@ i915_surface_create_from_cacheable_image_internal (i915_device_t *device,
 
     surface = _cairo_malloc (sizeof (i915_surface_t));
     if (unlikely (surface == NULL)) {
-	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+	status = _cairo_error (CAIRO_INT_STATUS_NO_MEMORY);
 	goto CLEANUP_CACHE;
     }
 
@@ -2874,7 +2925,7 @@ i915_surface_create_from_cacheable_image (cairo_drm_device_t *device,
     i915_surface_t *surface;
     cairo_image_surface_t *image;
     void *image_extra;
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     status = _cairo_surface_acquire_source_image (source, &image, &image_extra);
     if (unlikely (status))
@@ -2887,15 +2938,15 @@ i915_surface_create_from_cacheable_image (cairo_drm_device_t *device,
     return &surface->intel.drm.base;
 }
 
-static cairo_status_t
+static cairo_int_status_t
 i915_surface_enable_scan_out (void *abstract_surface)
 {
     i915_surface_t *surface = abstract_surface;
     intel_bo_t *bo;
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     if (unlikely (surface->intel.drm.bo == NULL))
-	return _cairo_error (CAIRO_STATUS_INVALID_SIZE);
+	return _cairo_error (CAIRO_INT_STATUS_INVALID_SIZE);
 
     bo = to_intel_bo (surface->intel.drm.bo);
     if (bo->tiling == I915_TILING_Y) {
@@ -2909,7 +2960,7 @@ i915_surface_enable_scan_out (void *abstract_surface)
     }
 
 
-    return CAIRO_STATUS_SUCCESS;
+    return CAIRO_INT_STATUS_SUCCESS;
 }
 
 static cairo_int_status_t
@@ -2918,7 +2969,7 @@ i915_device_flush (cairo_drm_device_t *device)
     cairo_status_t status;
 
     if (unlikely (device->base.finished))
-	return CAIRO_STATUS_SUCCESS;
+	return CAIRO_INT_STATUS_SUCCESS;
 
     status = cairo_device_acquire (&device->base);
     if (likely (status == CAIRO_STATUS_SUCCESS)) {
@@ -2967,7 +3018,7 @@ cairo_drm_device_t *
 _cairo_drm_i915_device_create (int fd, dev_t dev_id, int vendor_id, int chip_id)
 {
     i915_device_t *device;
-    cairo_status_t status;
+    cairo_int_status_t status;
     uint64_t gtt_size;
     int n;
 
@@ -2976,7 +3027,7 @@ _cairo_drm_i915_device_create (int fd, dev_t dev_id, int vendor_id, int chip_id)
 
     device = _cairo_malloc (sizeof (i915_device_t));
     if (device == NULL)
-	return (cairo_drm_device_t *) _cairo_device_create_in_error (CAIRO_STATUS_NO_MEMORY);
+	return (cairo_drm_device_t *) _cairo_device_create_in_error (CAIRO_INT_STATUS_NO_MEMORY);
 
     status = intel_device_init (&device->intel, fd);
     if (unlikely (status)) {

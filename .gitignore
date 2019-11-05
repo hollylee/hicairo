@@ -30,8 +30,14 @@ Makefile.in
 
 /boilerplate/Makefile.am.features
 /boilerplate/Makefile.win32.features
+/boilerplate/cairo-boilerplate-constructors.c
 /build/Makefile.win32.features
 /build/Makefile.win32.features-h
 /src/Makefile.am.features
 /src/Makefile.win32.features
-
+/perf/cairo-analyse-trace
+/perf/cairo-perf-micro
+/perf/cairo-perf-trace
+/test/any2ppm
+/test/cairo-test-suite
+/test/cairo-test-constructors.c

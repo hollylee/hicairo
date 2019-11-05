@@ -360,6 +360,8 @@ print_dcl_op(uint32_t opcode, const uint32_t * program)
     fprintf (stderr, "\n");
 }
 
+#pragma GCC diagnostic ignored "-Wunsafe-loop-optimizations"
+
 static void
 i915_disassemble_program (const uint32_t * program, uint32_t sz)
 {

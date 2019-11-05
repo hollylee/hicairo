@@ -194,6 +194,8 @@ cairo_gl_context_get_glyph_cache (cairo_gl_context_t *ctx,
 	break;
     default:
     case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
 	ASSERT_NOT_REACHED;
 	return _cairo_error (CAIRO_STATUS_INVALID_FORMAT);
     }

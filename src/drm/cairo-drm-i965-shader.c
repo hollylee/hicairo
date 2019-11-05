@@ -399,7 +399,7 @@ i965_shader_acquire_surface (i965_shader_t *shader,
     if (surface->type == CAIRO_SURFACE_TYPE_DRM) {
 	if (surface->backend->type == CAIRO_SURFACE_TYPE_SUBSURFACE) {
 	    drm = ((cairo_surface_subsurface_t *) surface)->target;
-	} else if (surface->backend->type == CAIRO_INTERNAL_SURFACE_TYPE_SNAPSHOT) {
+	} else if ((cairo_internal_surface_type_t)surface->backend->type == CAIRO_INTERNAL_SURFACE_TYPE_SNAPSHOT) {
 	    drm = ((cairo_surface_snapshot_t *) surface)->target;
 	}
     }
@@ -675,6 +675,8 @@ i965_shader_acquire_pattern (i965_shader_t *shader,
 					    (cairo_surface_pattern_t *) pattern,
 					    extents);
 
+    case CAIRO_PATTERN_TYPE_MESH:
+    case CAIRO_PATTERN_TYPE_RASTER_SOURCE:
     default:
 	ASSERT_NOT_REACHED;
 	return CAIRO_STATUS_SUCCESS;
@@ -730,7 +732,7 @@ i965_shader_fini (i965_shader_t *shader)
 
 void
 i965_shader_set_clip (i965_shader_t *shader,
-		      cairo_clip_t *clip)
+		      const cairo_clip_t *clip)
 {
     cairo_surface_t *clip_surface;
     int clip_x, clip_y;
@@ -2047,6 +2049,9 @@ i965_get_card_format (cairo_format_t format)
 	return BRW_SURFACEFORMAT_A8_UNORM;
     case CAIRO_FORMAT_A1:
     case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
     default:
 	ASSERT_NOT_REACHED;
 	return 0;
@@ -2066,6 +2071,9 @@ i965_get_dest_format (cairo_format_t format)
         return BRW_SURFACEFORMAT_A8_UNORM;
     case CAIRO_FORMAT_A1:
     case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
     default:
 	ASSERT_NOT_REACHED;
 	return 0;

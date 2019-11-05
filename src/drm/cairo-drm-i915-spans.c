@@ -582,11 +582,11 @@ i915_spans_init (i915_spans_t *spans,
 		 cairo_operator_t op,
 		 const cairo_pattern_t *pattern,
 		 cairo_antialias_t antialias,
-		 cairo_clip_t *clip,
+		 const cairo_clip_t *clip,
 		 double opacity,
 		 const cairo_composite_rectangles_t *extents)
 {
-    cairo_status_t status;
+    cairo_int_status_t status;
 
     spans->device = (i915_device_t *) dst->intel.drm.base.device;
 
@@ -617,15 +617,20 @@ i915_spans_init (i915_spans_t *spans,
 #if 0
 	status = _cairo_clip_get_region (clip, &clip_region);
 	assert (status == CAIRO_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
-#else
-	clip_region = _cairo_clip_get_region (clip);
-#endif
-
 	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
 	    clip_region = NULL;
 
 	spans->clip_region = clip_region;
 	spans->need_clip_surface = status == CAIRO_INT_STATUS_UNSUPPORTED;
+#else /* FIXME */
+	clip_region = _cairo_clip_get_region (clip);
+
+	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
+	    clip_region = NULL;
+
+	spans->clip_region = clip_region;
+	spans->need_clip_surface = FALSE;
+#endif
     }
 
     spans->head.next = NULL;
@@ -657,7 +662,7 @@ i915_spans_init (i915_spans_t *spans,
     if (unlikely (status))
 	return status;
 
-    return CAIRO_STATUS_SUCCESS;
+    return CAIRO_INT_STATUS_SUCCESS;
 }
 
 static void
@@ -685,7 +690,7 @@ i915_clip_and_composite_spans (i915_surface_t		*dst,
 			       i915_spans_func_t	 draw_func,
 			       void			*draw_closure,
 			       const cairo_composite_rectangles_t*extents,
-			       cairo_clip_t		*clip,
+			       const cairo_clip_t	*clip,
 			       double opacity)
 {
     i915_spans_t spans;

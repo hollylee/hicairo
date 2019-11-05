@@ -62,12 +62,12 @@ get_udev_property(struct udev_device *device, const char *name)
     return NULL;
 }
 
-static void
+static cairo_status_t
 _device_flush (void *abstract_device)
 {
     cairo_drm_device_t *device = abstract_device;
 
-    device->device.flush (device);
+    return device->device.flush (device);
 }
 
 static void
@@ -85,7 +85,7 @@ _device_finish (void *abstract_device)
 
     CAIRO_MUTEX_UNLOCK (_cairo_drm_device_mutex);
 
-    if (_cairo_atomic_ptr_cmpxchg (&_cairo_drm_default_device,
+    if (_cairo_atomic_ptr_cmpxchg ((void **)&_cairo_drm_default_device,
 				   device, NULL))
     {
 	cairo_device_destroy (&device->base);

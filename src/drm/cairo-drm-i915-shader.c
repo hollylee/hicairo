@@ -1474,7 +1474,7 @@ i915_shader_acquire_surface (i915_shader_t *shader,
 			     const cairo_surface_pattern_t *pattern,
 			     const cairo_rectangle_int_t *extents)
 {
-    int surface_width, surface_height;
+    int surface_width = 0, surface_height = 0;
     cairo_surface_t *surface, *drm;
     cairo_extend_t extend;
     cairo_filter_t filter;
@@ -1495,7 +1495,7 @@ i915_shader_acquire_surface (i915_shader_t *shader,
     if (surface->type == CAIRO_SURFACE_TYPE_DRM) {
 	if (surface->backend->type == CAIRO_SURFACE_TYPE_SUBSURFACE) {
 	    drm = ((cairo_surface_subsurface_t *) surface)->target;
-	} else if (surface->backend->type == CAIRO_INTERNAL_SURFACE_TYPE_SNAPSHOT) {
+	} else if ((cairo_internal_surface_type_t)surface->backend->type == CAIRO_INTERNAL_SURFACE_TYPE_SNAPSHOT) {
 	    drm = ((cairo_surface_snapshot_t *) surface)->target;
 	}
     }
@@ -1730,6 +1730,8 @@ i915_shader_acquire_pattern (i915_shader_t *shader,
 					    (cairo_surface_pattern_t *) pattern,
 					    extents);
 
+    case CAIRO_PATTERN_TYPE_MESH:
+    case CAIRO_PATTERN_TYPE_RASTER_SOURCE:
     default:
 	ASSERT_NOT_REACHED;
 	return CAIRO_STATUS_SUCCESS;
@@ -2500,7 +2502,7 @@ i915_shader_fini (i915_shader_t *shader)
 
 void
 i915_shader_set_clip (i915_shader_t *shader,
-		      cairo_clip_t *clip)
+		      const cairo_clip_t *clip)
 {
     cairo_surface_t *clip_surface;
     int clip_x, clip_y;

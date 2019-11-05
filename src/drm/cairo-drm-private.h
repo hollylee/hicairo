@@ -85,7 +85,7 @@ typedef cairo_surface_t *
 typedef cairo_int_status_t
 (*cairo_drm_surface_flink_func_t) (void *surface);
 
-typedef cairo_status_t
+typedef cairo_int_status_t
 (*cairo_drm_surface_enable_scan_out_func_t) (void *surface);
 
 typedef cairo_surface_t *

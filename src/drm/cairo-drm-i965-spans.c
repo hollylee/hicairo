@@ -274,11 +274,9 @@ i965_spans_init (i965_spans_t *spans,
 		 cairo_operator_t op,
 		 const cairo_pattern_t *pattern,
 		 cairo_antialias_t antialias,
-		 cairo_clip_t *clip,
+		 const cairo_clip_t *clip,
 		 const cairo_composite_rectangles_t *extents)
 {
-    cairo_status_t status;
-
     spans->device = i965_device (dst);
     i965_shader_init (&spans->shader, dst, op);
 
@@ -306,8 +304,9 @@ i965_spans_init (i965_spans_t *spans,
 	cairo_region_t *clip_region = NULL;
 
 #if 0
+	cairo_int_status_t status;
 	status = _cairo_clip_get_region (clip, &clip_region);
-	assert (status == CAIRO_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
+	assert (status == CAIRO_INT_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
 
 	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
 	    clip_region = NULL;
@@ -373,7 +372,7 @@ i965_clip_and_composite_spans (i965_surface_t		*dst,
 			       i965_spans_func_t	 draw_func,
 			       void			*draw_closure,
 			       const cairo_composite_rectangles_t*extents,
-			       cairo_clip_t		*clip)
+			       const cairo_clip_t	*clip)
 {
     i965_spans_t spans;
     i965_device_t *device;

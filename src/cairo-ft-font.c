@@ -1363,6 +1363,7 @@ _get_bitmap_surface (FT_Bitmap		     *bitmap,
 	    break;
 	}
 	/* These could be triggered by very rare types of TrueType fonts */
+	// fall through
     default:
 	if (own_buffer)
 	    free (bitmap->buffer);
@@ -3200,8 +3201,6 @@ _cairo_ft_font_face_get_implementation (void                     *abstract_face,
 					const cairo_matrix_t       *ctm,
 					const cairo_font_options_t *options)
 {
-    cairo_ft_font_face_t      *font_face = abstract_face;
-
     /* The handling of font options is different depending on how the
      * font face was created. When the user creates a font face with
      * cairo_ft_font_face_create_for_ft_face(), then the load flags
@@ -3213,6 +3212,8 @@ _cairo_ft_font_face_get_implementation (void                     *abstract_face,
      */
 
 #if CAIRO_HAS_FC_FONT
+    cairo_ft_font_face_t      *font_face = abstract_face;
+
     /* If we have an unresolved pattern, resolve it and create
      * unscaled font.  Otherwise, use the ones stored in font_face.
      */
@@ -3721,7 +3722,7 @@ cairo_font_face_t *
 cairo_ft_font_face_create_for_ft_face (FT_Face         face,
 				       int             load_flags)
 {
-    cairo_ft_unscaled_font_t *unscaled;
+    cairo_ft_unscaled_font_t *unscaled = NULL;
     cairo_font_face_t *font_face;
     cairo_ft_options_t ft_options;
     cairo_status_t status;

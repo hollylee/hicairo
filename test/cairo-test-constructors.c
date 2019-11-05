@@ -573,6 +573,8 @@ extern void _register_ps_surface_source (void);
 extern void _register_svg_surface (void);
 extern void _register_svg_clip (void);
 extern void _register_svg_surface_source (void);
+extern void _register_xlib_surface (void);
+extern void _register_xlib_surface_source (void);
 extern void _register_multi_page (void);
 extern void _register_mime_unique_id (void);
 extern void _register_fallback_resolution (void);
@@ -1149,6 +1151,8 @@ _cairo_test_runner_register_tests (void)
     _register_svg_surface ();
     _register_svg_clip ();
     _register_svg_surface_source ();
+    _register_xlib_surface ();
+    _register_xlib_surface_source ();
     _register_multi_page ();
     _register_mime_unique_id ();
     _register_fallback_resolution ();

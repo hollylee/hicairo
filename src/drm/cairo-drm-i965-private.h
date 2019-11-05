@@ -659,17 +659,17 @@ i965_clip_and_composite_spans (i965_surface_t		*dst,
 			       i965_spans_func_t	 draw_func,
 			       void			*draw_closure,
 			       const cairo_composite_rectangles_t*extents,
-			       cairo_clip_t		*clip);
+			       const cairo_clip_t		*clip);
 
 cairo_private cairo_int_status_t
-i965_surface_glyphs (void			*abstract_surface,
+i965_surface_show_glyphs (void			*abstract_surface,
 		     cairo_operator_t		 op,
 		     const cairo_pattern_t	*source,
 		     cairo_glyph_t		*glyphs,
 		     int			 num_glyphs,
 		     cairo_scaled_font_t	*scaled_font,
-		     cairo_clip_t		*clip,
-		     int *num_remaining);
+		     const cairo_clip_t		*clip);
+//VW		     int *num_remaining);
 
 cairo_private void
 i965_shader_init (i965_shader_t *shader,
@@ -684,7 +684,7 @@ i965_shader_acquire_pattern (i965_shader_t *shader,
 
 cairo_private void
 i965_shader_set_clip (i965_shader_t *shader,
-		      cairo_clip_t *clip);
+		      const cairo_clip_t *clip);
 
 cairo_private cairo_status_t
 i965_shader_commit (i965_shader_t *shader,
@@ -699,7 +699,7 @@ i965_device_flush (i965_device_t *device);
 cairo_private cairo_status_t
 i965_fixup_unbounded (i965_surface_t *dst,
 		      const cairo_composite_rectangles_t *extents,
-		      cairo_clip_t *clip);
+		      const cairo_clip_t *clip);
 
 static inline int
 i965_filter (cairo_filter_t filter)
