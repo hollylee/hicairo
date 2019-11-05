@@ -474,3 +474,7 @@ cairo_cogl_sources = cairo-cogl-surface.c \
 		     cairo-cogl-gradient.c \
 		     cairo-cogl-context.c \
 		     cairo-cogl-utils.c
+
+cairo_minigui_headers = cairo-minigui.h
+cairo_minigui_sources = cairo-minigui-surface.c
+
