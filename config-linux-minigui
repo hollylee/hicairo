@@ -3,6 +3,7 @@
 ./configure \
     --disable-static \
     --enable-shared \
+    --enable-gtk-doc=yes \
     --enable-xlib=yes \
     --enable-xlib-xrender=no \
     --enable-xcb=no \

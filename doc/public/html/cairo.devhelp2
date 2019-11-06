@@ -709,6 +709,7 @@
     <keyword type="constant" name="CAIRO_SURFACE_TYPE_SKIA" link="cairo-cairo-surface-t.html#CAIRO-SURFACE-TYPE-SKIA:CAPS"/>
     <keyword type="constant" name="CAIRO_SURFACE_TYPE_SUBSURFACE" link="cairo-cairo-surface-t.html#CAIRO-SURFACE-TYPE-SUBSURFACE:CAPS"/>
     <keyword type="constant" name="CAIRO_SURFACE_TYPE_COGL" link="cairo-cairo-surface-t.html#CAIRO-SURFACE-TYPE-COGL:CAPS"/>
+    <keyword type="constant" name="CAIRO_SURFACE_TYPE_MINIGUI" link="cairo-cairo-surface-t.html#CAIRO-SURFACE-TYPE-MINIGUI:CAPS"/>
     <keyword type="constant" name="CAIRO_FORMAT_INVALID" link="cairo-Image-Surfaces.html#CAIRO-FORMAT-INVALID:CAPS"/>
     <keyword type="constant" name="CAIRO_FORMAT_ARGB32" link="cairo-Image-Surfaces.html#CAIRO-FORMAT-ARGB32:CAPS"/>
     <keyword type="constant" name="CAIRO_FORMAT_RGB24" link="cairo-Image-Surfaces.html#CAIRO-FORMAT-RGB24:CAPS"/>

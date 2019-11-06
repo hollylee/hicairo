@@ -476,5 +476,14 @@ cairo_cogl_sources = cairo-cogl-surface.c \
 		     cairo-cogl-utils.c
 
 cairo_minigui_headers = cairo-minigui.h
-cairo_minigui_sources = cairo-minigui-surface.c
+cairo_minigui_private = \
+	minigui/cairo-minigui-device-drm-intel-batchbuffer.h \
+	minigui/cairo-minigui-device-drm-intel-context.h \
+	minigui/cairo-minigui-device-drm-intel-reg.h \
+	$(NULL)
+
+cairo_minigui_sources = \
+	minigui/cairo-minigui-surface.c \
+	minigui/cairo-minigui-device-drm-intel-i915-driver.c \
+	$(NULL)
 

@@ -1512,6 +1512,11 @@ the wrong type is undefined.</para>
 </entry>
 <entry role="enum_member_annotations"></entry>
 </row>
+<row role="constant"><entry role="enum_member_name"><para id="CAIRO-SURFACE-TYPE-MINIGUI:CAPS">CAIRO_SURFACE_TYPE_MINIGUI</para></entry>
+<entry role="enum_member_description"><para>The surface is of type minigui</para>
+</entry>
+<entry role="enum_member_annotations"></entry>
+</row>
 </tbody></tgroup></informaltable>
 </refsect3><para role="since">Since: <link linkend="api-index-1.2">1.2</link></para></refsect2>
 

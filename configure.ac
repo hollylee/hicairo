@@ -195,6 +195,14 @@ CAIRO_ENABLE_SURFACE_BACKEND(minigui, MiniGUI, auto, [
 		    [minigui_REQUIRES=""
 		     use_minigui="no (requires MiniGUI development library version 4.0.3 or later )"
 		     ])
+  PKG_CHECK_MODULES(drm_intel, [libdrm_intel >= 2.4], video_drm_intel="yes",
+		    video_drm_intel="no; support for Intel DRM driver will be disabled.")
+  if test "x$video_drm_intel" = "xyes"; then
+      CPPFLAGS="$CPPFLAGS -DHAVE_DRM_INTEL"
+      minigui_NONPKGCONFIG_LIBS="-ldrm_intel"
+  else
+      AC_MSG_WARN([$video_drm_intel])
+  fi
 ])
 
 dnl ===========================================================================
