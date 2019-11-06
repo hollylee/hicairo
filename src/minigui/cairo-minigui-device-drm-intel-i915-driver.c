@@ -78,6 +78,7 @@
 #include <i915_drm.h>
 #include <libdrm/intel_bufmgr.h>
 
+#include "cairo-minigui-device.h"
 #include "cairo-minigui-device-drm-intel-reg.h"
 #include "cairo-minigui-device-drm-intel-context.h"
 #include "cairo-minigui-device-drm-intel-batchbuffer.h"
@@ -824,32 +825,23 @@ static int i915_copy_blit (DriDriver *driver,
     return -1;
 }
 
-DriDriverOps* __dri_ex_driver_get(const char* driver_name)
+DriDriverOps* _cairo_minigui_device_drm_get_i915_driver(void)
 {
-    _MG_PRINTF("%s called with driver name: %s\n", __func__, driver_name);
+    static DriDriverOps i915_driver = {
+        .create_driver = i915_create_driver,
+        .destroy_driver = i915_destroy_driver,
+        .flush_driver = i915_flush_driver,
+        .create_buffer = i915_create_buffer,
+        .create_buffer_from_name = i915_create_buffer_from_name,
+        .map_buffer = i915_map_buffer,
+        .unmap_buffer = i915_unmap_buffer,
+        .destroy_buffer = i915_destroy_buffer,
+        .clear_buffer = i915_clear_buffer,
+        .check_blit = i915_check_blit,
+        .copy_blit = i915_copy_blit,
+    };
 
-    if (strcmp(driver_name, "i915") == 0) {
-        static DriDriverOps i915_driver = {
-            .create_driver = i915_create_driver,
-            .destroy_driver = i915_destroy_driver,
-            .flush_driver = i915_flush_driver,
-            .create_buffer = i915_create_buffer,
-            .create_buffer_from_name = i915_create_buffer_from_name,
-            .map_buffer = i915_map_buffer,
-            .unmap_buffer = i915_unmap_buffer,
-            .destroy_buffer = i915_destroy_buffer,
-            .clear_buffer = i915_clear_buffer,
-            .check_blit = i915_check_blit,
-            .copy_blit = i915_copy_blit,
-        };
-
-        return &i915_driver;
-    }
-    else {
-        _MG_PRINTF("%s unknown DRM driver: %s\n", __func__, driver_name);
-    }
-
-    return NULL;
+    return &i915_driver;
 }
 
 #endif /* !HAVE_DRM_INTEL */
