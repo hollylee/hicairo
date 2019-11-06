@@ -47,22 +47,14 @@
 CAIRO_BEGIN_DECLS
 
 cairo_public cairo_surface_t *
-cairo_minigui_surface_create (HDC hdc);
+cairo_minigui_surface_create (HDC dc);
 
 cairo_public cairo_surface_t *
-cairo_minigui_surface_create_with_format (HDC hdc,
-				  cairo_format_t format);
+cairo_minigui_surface_create_with_memdc (cairo_format_t format,
+                                         int width, int height);
 
 cairo_public cairo_surface_t *
-cairo_minigui_surface_create_with_size (HDC hdc,
-				 int width,
-				 int height);
-
-cairo_public cairo_surface_t *
-cairo_minigui_surface_create_with_format_size (HDC hdc,
-				  cairo_format_t format,
-				  int width,
-				  int height);
+cairo_minigui_surface_create_with_memdc2 (HDC ref_dc, int width, int height);
 
 cairo_public HDC
 cairo_minigui_surface_get_dc (cairo_surface_t *surface);
