@@ -893,20 +893,6 @@ static const cairo_surface_backend_t cairo_minigui_surface_backend = {
     _cairo_minigui_surface_glyphs,
 };
 
-/* Notes:
- *
- * Win32 alpha-understanding functions
- *
- * BitBlt - will copy full 32 bits from a 32bpp DIB to result
- *          (so it's safe to use for ARGB32->ARGB32 SOURCE blits)
- *          (but not safe going RGB24->ARGB32, if RGB24 is also represented
- *           as a 32bpp DIB, since the alpha isn't discarded!)
- *
- * AlphaBlend - if both the source and dest have alpha, even if AC_SRC_ALPHA isn't set,
- *              it will still copy over the src alpha, because the SCA value (255) will be
- *              multiplied by all the src components.
- */
-
 /**
  * cairo_minigui_surface_create_with_format:
  * @hdc: the DC to create a surface for

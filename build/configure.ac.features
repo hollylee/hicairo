@@ -390,6 +390,7 @@ AC_DEFUN([CAIRO_REPORT],
 	echo "  OpenVG:        $use_vg"
 	echo "  DRM:           $use_drm"
 	echo "  Cogl:          $use_cogl"
+	echo "  MiniGUI:       $use_minigui"
 	echo ""
 	echo "The following font backends:"
 	echo "  User:          yes (always builtin)"
