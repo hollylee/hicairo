@@ -93,6 +93,7 @@ typedef struct _cairo_minigui_surface {
     /* We also construct an equivalent image surface */
     cairo_surface_t *image;
 
+    /* Use fallback surface for non memory DC */
     cairo_surface_t *fallback;
 
     cairo_rectangle_int_t extents;
@@ -190,21 +191,21 @@ _cairo_minigui_restore_initial_clip (cairo_minigui_surface_t *surface)
 }
 
 static PBITMAP
-construct_ddb_from_dc (HDC hdc, PBITMAP ddb)
+construct_bmp_from_memdc (HDC memdc, PBITMAP bmp)
 {
     RECT rc = {0, 0, 1, 1};
 
-    ddb->bmType = BMP_TYPE_NORMAL;
-    ddb->bmBitsPerPixel = GetGDCapability (hdc, GDCAP_BITSPP);
-    ddb->bmBytesPerPixel = GetGDCapability (hdc, GDCAP_BPP);
-    ddb->bmAlpha = 0;
-    ddb->bmColorKey = 0;
-    ddb->bmWidth = GetGDCapability (hdc, GDCAP_HPIXEL);
-    ddb->bmHeight = GetGDCapability (hdc, GDCAP_VPIXEL);
-    ddb->bmBits = LockDC (hdc, &rc, NULL, NULL, (int*)&ddb->bmPitch);
-    UnlockDC (hdc);
+    bmp->bmType = BMP_TYPE_NORMAL;
+    bmp->bmBitsPerPixel = GetGDCapability (memdc, GDCAP_BITSPP);
+    bmp->bmBytesPerPixel = GetGDCapability (memdc, GDCAP_BPP);
+    bmp->bmAlpha = 0;
+    bmp->bmColorKey = 0;
+    bmp->bmWidth = GetGDCapability (memdc, GDCAP_HPIXEL);
+    bmp->bmHeight = GetGDCapability (memdc, GDCAP_VPIXEL);
+    bmp->bmBits = LockDC (memdc, &rc, NULL, NULL, (int*)&bmp->bmPitch);
+    UnlockDC (memdc);
 
-    return ddb;
+    return bmp;
 }
 
 static cairo_status_t
@@ -269,7 +270,7 @@ _create_memdc_and_bitmap (cairo_minigui_surface_t *surface,
     if (surface->dc == HDC_INVALID)
         goto FAIL;
 
-    construct_ddb_from_dc (surface->dc, &surface->bitmap);
+    construct_bmp_from_memdc (surface->dc, &surface->bitmap);
     if (bits_out)
         *bits_out = surface->bitmap.bmBits;
     if (rowstride_out)
@@ -310,6 +311,7 @@ _cairo_minigui_surface_create_internal (cairo_format_t  format,
     if (status)
         goto FAIL;
 
+    surface->new_memdc = TRUE;
     surface->image = cairo_image_surface_create_for_data (bits, format,
                               width, height, rowstride);
     status = surface->image->status;
@@ -427,21 +429,17 @@ _cairo_minigui_surface_finish (void *abstract_surface)
     }
 
     /* If we created the Bitmap and DC, destroy them */
-    if (surface->bitmap.bmBits) {
-        DeleteMemDC (surface->dc);
-    }
-
-    _cairo_minigui_surface_discard_fallback (surface);
-
-    /* If we created the Bitmap and DC, destroy them */
     if (surface->new_memdc) {
         DeleteMemDC (surface->dc);
-    } else {
+    }
+    else {
         _cairo_minigui_restore_initial_clip (surface);
     }
 
     if (surface->initial_clip_rgn)
         DestroyClipRgn (surface->initial_clip_rgn);
+
+    _cairo_minigui_surface_discard_fallback (surface);
 
     return CAIRO_STATUS_SUCCESS;
 }
@@ -460,21 +458,21 @@ _cairo_minigui_surface_map_to_image (void                        *abs_surface,
         goto done;
 
     if (surface->fallback == NULL) {
-    surface->fallback =
-        _cairo_minigui_surface_create_internal (surface->format,
-                            surface->extents.x + surface->extents.width,
-                            surface->extents.y + surface->extents.height);
-    if (unlikely (status = surface->fallback->status))
-        goto err;
+        surface->fallback =
+            _cairo_minigui_surface_create_internal (surface->format,
+                                surface->extents.x + surface->extents.width,
+                                surface->extents.y + surface->extents.height);
+        if (unlikely (status = surface->fallback->status))
+            goto err;
 
-    BitBlt (to_minigui_surface(surface->fallback)->dc,
-             surface->extents.x, surface->extents.y,
-             surface->extents.width,
-             surface->extents.height,
-             surface->dc,
-             surface->extents.x,
-             surface->extents.y,
-             0);
+        BitBlt (to_minigui_surface(surface->fallback)->dc,
+                 surface->extents.x, surface->extents.y,
+                 surface->extents.width,
+                 surface->extents.height,
+                 surface->dc,
+                 surface->extents.x,
+                 surface->extents.y,
+                 0);
 #if 0
         status = _cairo_error (CAIRO_STATUS_DEVICE_ERROR);
         goto err;
@@ -483,7 +481,6 @@ _cairo_minigui_surface_map_to_image (void                        *abs_surface,
 
     surface = to_minigui_surface (surface->fallback);
 done:
-    //GdiFlush();
     return _cairo_surface_map_to_image (surface->image, extents);
 
 err:
@@ -573,21 +570,21 @@ _cairo_minigui_surface_flush (void *abstract_surface, unsigned flags)
         } else if (damage->region) {
             int n = cairo_region_num_rectangles (damage->region), i;
             for (i = 0; i < n; i++) {
-            cairo_rectangle_int_t rect;
+                cairo_rectangle_int_t rect;
 
-            cairo_region_get_rectangle (damage->region, i, &rect);
-            TRACE ((stderr, "%s: damage (%d,%d)x(%d,%d)\n", __func__,
-                rect.x, rect.y,
-                rect.width, rect.height));
-            BitBlt (surface->dc,
-                     rect.x,
-                     rect.y,
-                     rect.width, rect.height,
-                     fallback->dc,
-                     rect.x, rect.y,
-                     0);
-    //            status = _cairo_minigui_print_gdi_error (__func__);
-    //            break;
+                cairo_region_get_rectangle (damage->region, i, &rect);
+                TRACE ((stderr, "%s: damage (%d,%d)x(%d,%d)\n", __func__,
+                    rect.x, rect.y,
+                    rect.width, rect.height));
+                BitBlt (surface->dc,
+                         rect.x,
+                         rect.y,
+                         rect.width, rect.height,
+                         fallback->dc,
+                         rect.x, rect.y,
+                         0);
+        //            status = _cairo_minigui_print_gdi_error (__func__);
+        //            break;
             }
         }
         _cairo_damage_destroy (damage);
@@ -608,6 +605,7 @@ _cairo_minigui_surface_mark_dirty (void *abstract_surface,
     return CAIRO_STATUS_SUCCESS;
 }
 
+#if 0
 static cairo_int_status_t
 _cairo_minigui_surface_paint (void                  *surface,
                               cairo_operator_t       op,
@@ -672,6 +670,7 @@ _cairo_minigui_surface_glyphs (void                    *surface,
                        source, glyphs, num_glyphs,
                        scaled_font, clip);
 }
+#endif
 
 static const cairo_surface_backend_t cairo_minigui_surface_backend = {
     CAIRO_SURFACE_TYPE_MINIGUI,
@@ -698,12 +697,12 @@ static const cairo_surface_backend_t cairo_minigui_surface_backend = {
     _cairo_minigui_surface_flush,
     _cairo_minigui_surface_mark_dirty,
 
-    _cairo_minigui_surface_paint,
-    _cairo_minigui_surface_mask,
-    _cairo_minigui_surface_stroke,
-    _cairo_minigui_surface_fill,
+    _cairo_surface_fallback_paint,
+    _cairo_surface_fallback_mask,
+    _cairo_surface_fallback_stroke,
+    _cairo_surface_fallback_fill,
     NULL, /* fill/stroke */
-    _cairo_minigui_surface_glyphs,
+    _cairo_surface_fallback_glyphs,
 };
 
 /**
@@ -716,6 +715,8 @@ static const cairo_surface_backend_t cairo_minigui_surface_backend = {
  *
  * Return value: the newly created surface, NULL on failure
  *
+ * Note that the DC will be locked until you call cairo_surface_finish on
+ * the surface.
  * Since: 1.17
  **/
 cairo_surface_t *
@@ -751,24 +752,38 @@ cairo_minigui_surface_create (HDC hdc)
 
     status = _cairo_minigui_save_initial_clip (hdc, surface);
     if (status) {
-        free (surface);
-        return _cairo_surface_create_in_error (status);
+        goto FAIL;
     }
 
     if (_cairo_minigui_save_initial_clip (hdc, surface)) {
-        free (surface);
-        return _cairo_surface_create_in_error (
-                _cairo_error (CAIRO_STATUS_NO_MEMORY));
+        status = CAIRO_STATUS_NO_MEMORY;
+        goto FAIL;
     }
 
-    surface->image = NULL;
+    if (IsMemDC(hdc)) {
+        construct_bmp_from_memdc (hdc, &surface->bitmap);
+        surface->image = cairo_image_surface_create_for_data (
+                                surface->bitmap.bmBits, format,
+                                surface->bitmap.bmWidth, surface->bitmap.bmHeight,
+                                surface->bitmap.bmPitch);
+        status = surface->image->status;
+        if (status) {
+            goto FAIL;
+        }
+
+        _cairo_image_surface_set_parent (to_image_surface(surface->image),
+                     &surface->base);
+    }
+    else {
+        surface->image = NULL;
+    }
+
     surface->fallback = NULL;
     surface->format = format;
-
     surface->dc = hdc;
+    surface->new_memdc = FALSE;
 
     device = _cairo_minigui_device_get ();
-
     _cairo_surface_init (&surface->base,
              &cairo_minigui_surface_backend,
              device,
@@ -778,6 +793,10 @@ cairo_minigui_surface_create (HDC hdc)
     cairo_device_destroy (device);
 
     return &surface->base;
+
+FAIL:
+    free (surface);
+    return _cairo_surface_create_in_error (status);
 }
 
 /**
@@ -865,7 +884,7 @@ cairo_minigui_surface_get_dc (cairo_surface_t *surface)
     /* Throw an error for a non-MiniGUI surface */
     if (!_cairo_surface_is_minigui (surface)) {
         _cairo_error_throw (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
-        return NULL;
+        return HDC_INVALID;
     }
 
     return ms->dc;
