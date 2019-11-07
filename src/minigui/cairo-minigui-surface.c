@@ -98,6 +98,7 @@ typedef struct _cairo_minigui_surface {
 
     cairo_rectangle_int_t extents;
 
+#ifdef _SAVE_INITIAL_CLIP
     /* Initial clip bits
      * We need these kept around so that we maintain
      * whatever clip was set on the original DC at creation
@@ -106,6 +107,7 @@ typedef struct _cairo_minigui_surface {
     RECT clip_rect;
     PCLIPRGN initial_clip_rgn;
     cairo_bool_t had_simple_clip;
+#endif
 
     cairo_bool_t new_memdc;
 } cairo_minigui_surface_t;
@@ -146,6 +148,7 @@ _cairo_format_from_dc (HDC dc)
     return CAIRO_FORMAT_INVALID;
 }
 
+#ifdef _SAVE_INITIAL_CLIP
 static cairo_int_status_t
 _cairo_minigui_save_initial_clip (HDC hdc, cairo_minigui_surface_t *surface)
 {
@@ -189,9 +192,22 @@ _cairo_minigui_restore_initial_clip (cairo_minigui_surface_t *surface)
 
     return status;
 }
+#else
+static inline cairo_int_status_t
+_cairo_minigui_save_initial_clip (HDC hdc, cairo_minigui_surface_t *surface)
+{
+    return CAIRO_STATUS_SUCCESS;
+}
+
+static inline cairo_int_status_t
+_cairo_minigui_restore_initial_clip (cairo_minigui_surface_t *surface)
+{
+    return CAIRO_STATUS_SUCCESS;
+}
+#endif
 
 static PBITMAP
-construct_bmp_from_memdc (HDC memdc, PBITMAP bmp)
+construct_bmp_from_dc (HDC memdc, PBITMAP bmp)
 {
     RECT rc = {0, 0, 1, 1};
 
@@ -270,7 +286,7 @@ _create_memdc_and_bitmap (cairo_minigui_surface_t *surface,
     if (surface->dc == HDC_INVALID)
         goto FAIL;
 
-    construct_bmp_from_memdc (surface->dc, &surface->bitmap);
+    construct_bmp_from_dc (surface->dc, &surface->bitmap);
     if (bits_out)
         *bits_out = surface->bitmap.bmBits;
     if (rowstride_out)
@@ -328,8 +344,10 @@ _cairo_minigui_surface_create_internal (cairo_format_t  format,
     surface->extents.width = width;
     surface->extents.height = height;
 
+#ifdef _SAVE_INITIAL_CLIP
     surface->initial_clip_rgn = NULL;
     surface->had_simple_clip = FALSE;
+#endif
 
     device = _cairo_minigui_device_get ();
 
@@ -436,8 +454,10 @@ _cairo_minigui_surface_finish (void *abstract_surface)
         _cairo_minigui_restore_initial_clip (surface);
     }
 
+#ifdef _SAVE_INITIAL_CLIP
     if (surface->initial_clip_rgn)
         DestroyClipRgn (surface->initial_clip_rgn);
+#endif
 
     _cairo_minigui_surface_discard_fallback (surface);
 
@@ -727,6 +747,11 @@ cairo_minigui_surface_create (HDC hdc)
     cairo_device_t *device;
     cairo_format_t format;
 
+    if (hdc == HDC_INVALID) {
+        return _cairo_surface_create_in_error (
+                        _cairo_error (CAIRO_STATUS_INVALID_VISUAL));
+    }
+
     format = _cairo_format_from_dc(hdc);
     switch (format) {
     case CAIRO_FORMAT_RGB30:
@@ -755,16 +780,12 @@ cairo_minigui_surface_create (HDC hdc)
         goto FAIL;
     }
 
-    if (_cairo_minigui_save_initial_clip (hdc, surface)) {
-        status = CAIRO_STATUS_NO_MEMORY;
-        goto FAIL;
-    }
-
-    if (IsMemDC(hdc)) {
-        construct_bmp_from_memdc (hdc, &surface->bitmap);
+    if (hdc == HDC_SCREEN || IsMemDC(hdc)) {
+        construct_bmp_from_dc (hdc, &surface->bitmap);
         surface->image = cairo_image_surface_create_for_data (
                                 surface->bitmap.bmBits, format,
-                                surface->bitmap.bmWidth, surface->bitmap.bmHeight,
+                                surface->bitmap.bmWidth,
+                                surface->bitmap.bmHeight,
                                 surface->bitmap.bmPitch);
         status = surface->image->status;
         if (status) {
@@ -855,6 +876,11 @@ cairo_minigui_surface_create_with_memdc2 (HDC ref_dc,
                      int height)
 {
     cairo_format_t format;
+
+    if (ref_dc == HDC_INVALID) {
+        return _cairo_surface_create_in_error (
+                        _cairo_error (CAIRO_STATUS_INVALID_VISUAL));
+    }
 
     format = _cairo_format_from_dc(ref_dc);
     return _cairo_minigui_surface_create_internal (format,
