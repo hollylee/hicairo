@@ -1,6 +1,6 @@
 #!/bin/sh
 
-./configure \
+./configure --prefix=/srv/devel/sandbox/ \
     --disable-static \
     --enable-shared \
     --enable-gtk-doc=yes \
