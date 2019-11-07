@@ -1,6 +1,6 @@
 #!/bin/sh
 
-./configure --prefix=/srv/devel/sandbox/ \
+./configure \
     --disable-static \
     --enable-shared \
     --enable-gtk-doc=yes \
@@ -11,5 +11,5 @@
     --enable-fc=no \
     --enable-minigui=yes \
     --enable-drm=yes \
-    --enable-gl=yes \
-    --enable-egl=yes
+    --enable-gl=no \
+    --enable-egl=no

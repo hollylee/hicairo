@@ -780,7 +780,7 @@ dnl ===========================================================================
 dnl Build the external converter if we have any of the test backends
 AM_CONDITIONAL(BUILD_ANY2PPM,
 	       test "x$any2ppm_svg" = "xyes" \
-	         -o "x$any2ppm_pdf" = "xyes" \
+		 -o "x$any2ppm_pdf" = "xyes" \
 		 -o "x$any2ppm_ps"  = "xyes" \
 		 -o "x$any2ppm_cs"  = "xyes")
 
