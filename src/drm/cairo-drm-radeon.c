@@ -226,6 +226,38 @@ radeon_bo_create (radeon_device_t *device,
 }
 
 cairo_drm_bo_t *
+radeon_bo_create_for_handle (radeon_device_t *device,
+			   uint32_t handle,
+			   uint32_t size)
+{
+    radeon_bo_t *bo;
+
+    if (handle == 0 || size == 0) {
+	_cairo_error_throw (CAIRO_STATUS_INVALID_ARGUMENTS);
+	return NULL;
+    }
+
+    bo = _cairo_freepool_alloc (&device->bo_pool);
+    if (unlikely (bo == NULL)) {
+	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
+	return NULL;
+    }
+
+    bo->base.name = 0;
+    bo->base.handle = handle;
+    bo->base.size = size;
+
+    bo->virtual = NULL;
+
+    bo->in_batch = FALSE;
+    bo->read_domains = 0;
+    bo->write_domain = 0;
+
+    CAIRO_REFERENCE_COUNT_INIT (&bo->base.ref_count, 1);
+    return &bo->base;
+}
+
+cairo_drm_bo_t *
 radeon_bo_create_for_name (radeon_device_t *device,
 			   uint32_t name)
 {

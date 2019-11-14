@@ -384,6 +384,56 @@ radeon_surface_create (cairo_drm_device_t *device,
 }
 
 static cairo_surface_t *
+radeon_surface_create_for_handle (cairo_drm_device_t *device,
+			      unsigned int handle,
+			      unsigned int size,
+			      cairo_format_t format,
+			      int width, int height, int stride)
+{
+    radeon_surface_t *surface;
+    cairo_status_t status;
+
+    switch (format) {
+    default:
+    case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
+    case CAIRO_FORMAT_A1:
+    case CAIRO_FORMAT_RGB16_565:
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+    case CAIRO_FORMAT_ARGB32:
+    case CAIRO_FORMAT_RGB24:
+    case CAIRO_FORMAT_A8:
+	break;
+    }
+
+    if (stride < cairo_format_stride_for_width (format, width))
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_STRIDE));
+
+    surface = _cairo_malloc (sizeof (radeon_surface_t));
+    if (unlikely (surface == NULL))
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+
+    radeon_surface_init (surface, device, format, width, height);
+
+    if (width && height) {
+	surface->base.stride = stride;
+
+	surface->base.bo = radeon_bo_create_for_handle (to_radeon_device (&device->base),
+							handle, size);
+
+	if (unlikely (surface->base.bo == NULL)) {
+	    status = _cairo_drm_surface_finish (&surface->base);
+	    free (surface);
+	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+	}
+    }
+
+    return &surface->base.base;
+}
+
+static cairo_surface_t *
 radeon_surface_create_for_name (cairo_drm_device_t *device,
 			      unsigned int name,
 			      cairo_format_t format,
@@ -463,6 +513,7 @@ _cairo_drm_radeon_device_create (int fd, dev_t dev, int vendor_id, int chip_id)
     }
 
     device->base.surface.create = radeon_surface_create;
+    device->base.surface.create_for_handle = radeon_surface_create_for_handle;
     device->base.surface.create_for_name = radeon_surface_create_for_name;
     device->base.surface.create_from_cacheable_image = NULL;
     device->base.surface.flink = _cairo_drm_surface_flink;

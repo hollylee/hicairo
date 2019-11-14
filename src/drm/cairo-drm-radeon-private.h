@@ -93,6 +93,11 @@ radeon_bo_create (radeon_device_t *dev,
 		  uint32_t initial_domain);
 
 cairo_private cairo_drm_bo_t *
+radeon_bo_create_for_handle (radeon_device_t *dev,
+			     uint32_t handle,
+			     uint32_t size);
+
+cairo_private cairo_drm_bo_t *
 radeon_bo_create_for_name (radeon_device_t *dev, uint32_t name);
 
 cairo_private cairo_surface_t *
