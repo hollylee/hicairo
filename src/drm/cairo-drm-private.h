@@ -69,6 +69,7 @@ typedef cairo_surface_t *
 typedef cairo_surface_t *
 (*cairo_drm_surface_create_for_handle_func_t) (cairo_drm_device_t *device,
 					       unsigned int handle,
+					       unsigned int size,
 					       cairo_format_t format,
 					       int width, int height, int stride);
 
