@@ -72,14 +72,17 @@ intel_info (int fd, uint64_t *gtt_size)
 {
     struct drm_i915_gem_get_aperture info;
 
-    if (! intel_get (fd, I915_PARAM_HAS_GEM))
+    if (!intel_get (fd, I915_PARAM_HAS_GEM)) {
 	return FALSE;
+    }
 
-    if (! intel_get (fd, I915_PARAM_HAS_EXECBUF2))
+    if (!intel_get (fd, I915_PARAM_HAS_EXECBUF2)) {
 	return FALSE;
+    }
 
-    if (ioctl (fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &info) < 0)
+    if (ioctl (fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &info) < 0) {
 	return FALSE;
+    }
 
     VG (VALGRIND_MAKE_MEM_DEFINED (&info, sizeof (info)));
 
@@ -789,6 +792,10 @@ intel_device_init (intel_device_t *device, int fd)
     cairo_list_init (&device->fonts);
 
     device->gradient_cache.size = 0;
+
+    // VW: initialize bo_pool and bo_in_flight
+    _cairo_freepool_init (&device->bo_pool, sizeof (intel_bo_t));
+    cairo_list_init (&device->bo_in_flight);
 
     device->base.bo.release = intel_bo_release;
 
