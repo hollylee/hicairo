@@ -438,6 +438,7 @@ texcoord_2d_16 (double x, double y)
 #define PCI_CHIP_I855_GM		0x3582
 #define PCI_CHIP_I865_G			0x2572
 
+#define PCI_CHIP_I915_GT2		0x0412
 #define PCI_CHIP_I915_G			0x2582
 #define PCI_CHIP_E7221_G		0x258A
 #define PCI_CHIP_I915_GM		0x2592
@@ -493,6 +494,7 @@ texcoord_2d_16 (double x, double y)
 #define IS_IRONLAKE(devid)      (IS_ILD(devid) || IS_ILM(devid))
 
 #define IS_915(devid)		(devid == PCI_CHIP_I915_G || \
+				 devid == PCI_CHIP_I915_GT2 || \
 				 devid == PCI_CHIP_E7221_G || \
 				 devid == PCI_CHIP_I915_GM)
 
