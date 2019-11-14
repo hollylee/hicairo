@@ -777,6 +777,7 @@ _cairo_drm_gallium_device_create (int fd, dev_t dev, int vendor_id, int chip_id)
     device->dlhandle = handle;
 
     device->drm.surface.create = gallium_surface_create;
+    device->drm.surface.create_for_handle = NULL;
     device->drm.surface.create_for_name = NULL;
     //device->drm.surface.create_for_name = gallium_surface_create_for_name;
     device->drm.surface.enable_scan_out = NULL;
