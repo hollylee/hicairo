@@ -435,6 +435,68 @@ DONE:
 }
 
 intel_bo_t *
+intel_bo_create_for_handle (intel_device_t *device,
+			    uint32_t handle,
+			    uint32_t size)
+{
+    struct drm_i915_gem_get_tiling get_tiling;
+    intel_bo_t *bo;
+    int ret;
+
+    if (handle == 0 || size == 0) {
+	_cairo_error_throw (CAIRO_STATUS_INVALID_ARGUMENTS);
+	return NULL;
+    }
+
+    bo = _cairo_freepool_alloc (&device->bo_pool);
+    if (unlikely (bo == NULL)) {
+	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
+	return NULL;
+    }
+
+    bo->base.name = 0;
+    bo->base.handle = handle;
+    bo->base.size = size;
+
+    CAIRO_REFERENCE_COUNT_INIT (&bo->base.ref_count, 1);
+    cairo_list_init (&bo->cache_list);
+
+    bo->full_size = bo->base.size;
+    bo->offset = 0;
+    bo->virtual = NULL;
+    bo->purgeable = 0;
+    bo->busy = TRUE;
+    bo->cpu = FALSE;
+
+    bo->opaque0 = 0;
+    bo->opaque1 = 0;
+
+    bo->exec = NULL;
+    bo->batch_read_domains = 0;
+    bo->batch_write_domain = 0;
+    cairo_list_init (&bo->link);
+
+    memset (&get_tiling, 0, sizeof (get_tiling));
+    get_tiling.handle = bo->base.handle;
+
+    ret = ioctl (device->base.fd, DRM_IOCTL_I915_GEM_GET_TILING, &get_tiling);
+    if (unlikely (ret != 0)) {
+	_cairo_error_throw (CAIRO_STATUS_DEVICE_ERROR);
+	_cairo_drm_bo_close (&device->base, &bo->base);
+	goto FAIL;
+    }
+
+    bo->_tiling = bo->tiling = get_tiling.tiling_mode;
+    // bo->stride = get_tiling.stride; /* XXX not available from get_tiling */
+
+    return bo;
+
+FAIL:
+    _cairo_freepool_free (&device->bo_pool, bo);
+    return NULL;
+}
+
+intel_bo_t *
 intel_bo_create_for_name (intel_device_t *device, uint32_t name)
 {
     struct drm_i915_gem_get_tiling get_tiling;

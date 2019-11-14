@@ -269,6 +269,11 @@ intel_bo_create (intel_device_t *dev,
 		 uint32_t stride);
 
 cairo_private intel_bo_t *
+intel_bo_create_for_handle (intel_device_t *dev,
+			    uint32_t handle,
+			    uint32_t size);
+
+cairo_private intel_bo_t *
 intel_bo_create_for_name (intel_device_t *dev, uint32_t name);
 
 cairo_private void
