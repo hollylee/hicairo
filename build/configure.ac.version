@@ -8,8 +8,8 @@ m4_define([cairo_release_status],
 	         [m4_if(m4_eval(cairo_version_minor % 2), [1], [snapshot],
 		                                               [release])])])
 
-dnl This is the .so/dll number.  3 for hicairo-1.x.x
-m4_define([cairo_version_sonum], m4_eval(cairo_version_major + 2))
+dnl This is the .so/dll number.  3 for hicairo-2.x.x
+m4_define([cairo_version_sonum], m4_eval(cairo_version_major + 1))
 
 dnl The libtool shared library version stuff
 m4_define([cairo_version],
