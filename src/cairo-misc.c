@@ -173,6 +173,8 @@ cairo_status_to_string (cairo_status_t status)
 	return "error occurred in the Windows Graphics Device Interface";
     case CAIRO_STATUS_TAG_ERROR:
 	return "invalid tag name, attributes, or nesting";
+    case CAIRO_STATUS_METHOD_NOT_IMPLEMENTED:
+	return "the specified method not implemented";
     default:
     case CAIRO_STATUS_LAST_STATUS:
 	return "<unknown error status>";
