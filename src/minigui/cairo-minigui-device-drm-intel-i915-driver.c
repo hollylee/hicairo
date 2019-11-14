@@ -369,7 +369,7 @@ static DriSurfaceBuffer* i915_create_buffer (DriDriver *driver,
         return NULL;
     }
 
-    pitch = ROUND_TO_MULTIPLE (width * cpp, 256);
+    pitch = ROUND_TO_MULTIPLE (width * cpp, 32);
     buffer_object = drm_intel_bo_alloc_for_render (driver->manager,
             "surface", height * pitch, 0);
 
