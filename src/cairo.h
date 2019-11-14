@@ -297,6 +297,7 @@ typedef struct _cairo_user_data_key {
  * @CAIRO_STATUS_WIN32_GDI_ERROR: error occurred in the Windows Graphics Device Interface (Since 1.16)
  * @CAIRO_STATUS_TAG_ERROR: invalid tag name, attributes, or nesting (Since 1.16)
  * @CAIRO_STATUS_METHOD_NOT_IMPLEMENTED: a specific method not implemented (Since 2.18)
+ * @CAIRO_STATUS_INVALID_ARGUMENTS: invalid arguments (identifier, handle, buffer size, etc.) (Since 2.18)
  * @CAIRO_STATUS_LAST_STATUS: this is a special value indicating the number of
  *   status values defined in this enumeration.  When using this value, note
  *   that the version of cairo at run-time may have additional status values
@@ -358,6 +359,7 @@ typedef enum _cairo_status {
     CAIRO_STATUS_WIN32_GDI_ERROR,
     CAIRO_STATUS_TAG_ERROR,
     CAIRO_STATUS_METHOD_NOT_IMPLEMENTED,
+    CAIRO_STATUS_INVALID_ARGUMENTS,
 
     CAIRO_STATUS_LAST_STATUS
 } cairo_status_t;

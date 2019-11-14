@@ -175,6 +175,8 @@ cairo_status_to_string (cairo_status_t status)
 	return "invalid tag name, attributes, or nesting";
     case CAIRO_STATUS_METHOD_NOT_IMPLEMENTED:
 	return "the specified method not implemented";
+    case CAIRO_STATUS_INVALID_ARGUMENTS:
+	return "invalid argument(s)";
     default:
     case CAIRO_STATUS_LAST_STATUS:
 	return "<unknown error status>";

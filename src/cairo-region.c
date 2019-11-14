@@ -112,6 +112,7 @@ _cairo_region_create_in_error (cairo_status_t status)
     case CAIRO_STATUS_WIN32_GDI_ERROR:
     case CAIRO_STATUS_TAG_ERROR:
     case CAIRO_STATUS_METHOD_NOT_IMPLEMENTED:
+    case CAIRO_STATUS_INVALID_ARGUMENTS:
     default:
 	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
 	return (cairo_region_t *) &_cairo_region_nil;
