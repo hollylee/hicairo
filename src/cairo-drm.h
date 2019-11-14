@@ -64,6 +64,7 @@ cairo_drm_surface_create (cairo_device_t *device,
 cairo_public cairo_surface_t *
 cairo_drm_surface_create_for_handle (cairo_device_t *device,
 				   unsigned int handle,
+				   unsigned int size,
 				   cairo_format_t format,
 				   int width, int height, int stride);
 
