@@ -86,6 +86,20 @@ _cairo_drm_surface_get_extents (void *abstract_surface,
     return TRUE;
 }
 
+/**
+ * cairo_drm_surface_create:
+ * @abstract_device: The DRM device.
+ * @format: The desired cairo format of the surface.
+ * @width: The desired width of the surface in pixels.
+ * @height: The desired height of the surface in pixels.
+ *
+ * Allocates and creates a new DRM surface with desired @format,
+ * @widht, and @height.
+ *
+ * Return value: the newly created surface, %NULL on failure.
+ *
+ * Since: 2.18
+ **/
 cairo_surface_t *
 cairo_drm_surface_create (cairo_device_t *abstract_device,
 			  cairo_format_t format,
@@ -119,26 +133,46 @@ cairo_drm_surface_create (cairo_device_t *abstract_device,
     return surface;
 }
 
+/**
+ * cairo_drm_surface_create_for_handle:
+ * @abstract_device: The DRM device.
+ * @handle: The handle of the DRM buffer.
+ * @size: The size of the DRM buffer in bytes.
+ * @format: The cairo format of the surface.
+ * @width: The width of the surface in pixels.
+ * @height: The height of the surface in pixels.
+ * @stride: The row stride of the surface in bytes.
+ *
+ * Creates a surface by using an existing DRM buffer specified by @handle.
+ *
+ * Return value: the newly created surface, %NULL on failure.
+ *
+ * Since: 2.18
+ **/
 cairo_surface_t *
 cairo_drm_surface_create_for_handle (cairo_device_t *abstract_device,
-				   unsigned int handle,
-				   cairo_format_t format,
-				   int width, int height, int stride)
+				     unsigned int handle,
+				     unsigned int size,
+				     cairo_format_t format,
+				     int width, int height, int stride)
 {
     cairo_drm_device_t *device = (cairo_drm_device_t *) abstract_device;
     cairo_surface_t *surface;
 
+    if (device == NULL) {
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NULL_POINTER));
+    }
+
     if (! CAIRO_FORMAT_VALID (format))
 	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
 
-    if (device != NULL && device->base.status)
+    if (device->base.status)
     {
 	surface = _cairo_surface_create_in_error (device->base.status);
     }
-    else if (device == NULL || device->surface.create_for_handle == NULL)
+    else if (device->surface.create_for_handle == NULL)
     {
-	/* XXX invalid device! */
-	surface = _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+	surface = _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_METHOD_NOT_IMPLEMENTED));
     }
     else if (width == 0 || width > device->max_surface_size ||
 	     height == 0 || height > device->max_surface_size)
@@ -152,7 +186,7 @@ cairo_drm_surface_create_for_handle (cairo_device_t *abstract_device,
     else
     {
 	surface = device->surface.create_for_handle (device,
-	                                             handle, format,
+						     handle, size, format,
 						     width, height, stride);
     }
 
@@ -160,14 +194,32 @@ cairo_drm_surface_create_for_handle (cairo_device_t *abstract_device,
 }
 slim_hidden_def (cairo_drm_surface_create_for_handle);
 
+/**
+ * cairo_drm_surface_create_for_name:
+ * @abstract_device: The DRM device.
+ * @name: The name of the DRM buffer.
+ * @format: The cairo format of the surface.
+ * @width: The width of the surface in pixels.
+ * @height: The height of the surface in pixels.
+ * @stride: The row stride of the surface in bytes.
+ *
+ * Creates a surface by using an existing DRM buffer specified by @name.
+ *
+ * Return value: the newly created surface, %NULL on failure.
+ *
+ * Since: 2.18
+ **/
 cairo_surface_t *
 cairo_drm_surface_create_for_name (cairo_device_t *abstract_device,
 				   unsigned int name,
-	                           cairo_format_t format,
+				   cairo_format_t format,
 				   int width, int height, int stride)
 {
     cairo_drm_device_t *device = (cairo_drm_device_t *) abstract_device;
     cairo_surface_t *surface;
+
+    if (device == NULL)
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NULL_POINTER));
 
     if (! CAIRO_FORMAT_VALID (format))
 	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
@@ -176,10 +228,9 @@ cairo_drm_surface_create_for_name (cairo_device_t *abstract_device,
     {
 	surface = _cairo_surface_create_in_error (device->base.status);
     }
-    else if (device == NULL || device->surface.create_for_name == NULL)
+    else if (device->surface.create_for_name == NULL)
     {
-	/* XXX invalid device! */
-	surface = _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+	surface = _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_METHOD_NOT_IMPLEMENTED));
     }
     else if (width == 0 || width > device->max_surface_size ||
 	     height == 0 || height > device->max_surface_size)
@@ -193,8 +244,8 @@ cairo_drm_surface_create_for_name (cairo_device_t *abstract_device,
     else
     {
 	surface = device->surface.create_for_name (device,
-	                                             name, format,
-						     width, height, stride);
+						   name, format,
+						   width, height, stride);
     }
 
     return surface;
