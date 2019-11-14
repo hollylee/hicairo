@@ -1729,6 +1729,59 @@ i965_surface_create (cairo_drm_device_t *device,
 }
 
 static cairo_surface_t *
+i965_surface_create_for_handle (cairo_drm_device_t *base_dev,
+			      unsigned int handle,
+			      unsigned int size,
+			      cairo_format_t format,
+			      int width, int height, int stride)
+{
+    i965_device_t *device;
+    i965_surface_t *surface;
+    cairo_int_status_t status_ignored;
+    int min_stride;
+
+    min_stride = cairo_format_stride_for_width (format, (width + 3) & -4);
+    if (stride < min_stride || stride & 63)
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_STRIDE));
+
+    if (format == CAIRO_FORMAT_A1)
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+
+    switch (format) {
+    case CAIRO_FORMAT_ARGB32:
+    case CAIRO_FORMAT_RGB16_565:
+    case CAIRO_FORMAT_RGB24:
+    case CAIRO_FORMAT_A8:
+	break;
+    case CAIRO_FORMAT_INVALID:
+    default:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
+    case CAIRO_FORMAT_A1:
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+    }
+
+    surface = _cairo_malloc (sizeof (i965_surface_t));
+    if (unlikely (surface == NULL))
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+
+    i965_surface_init (surface, base_dev, format, width, height);
+
+    device = (i965_device_t *) base_dev;
+    surface->intel.drm.bo = &intel_bo_create_for_handle (&device->intel, handle, size)->base;
+    if (unlikely (surface->intel.drm.bo == NULL)) {
+	status_ignored = _cairo_drm_surface_finish (&surface->intel.drm);
+	free (surface);
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+    }
+
+    surface->intel.drm.stride = stride;
+
+    return &surface->intel.drm.base;
+}
+
+static cairo_surface_t *
 i965_surface_create_for_name (cairo_drm_device_t *base_dev,
 			      unsigned int name,
 			      cairo_format_t format,
@@ -1924,6 +1977,7 @@ _cairo_drm_i965_device_create (int fd, dev_t dev, int vendor_id, int chip_id)
     //device->is_g5x = IS_G5X (chip_id);
 
     device->intel.base.surface.create = i965_surface_create;
+    device->intel.base.surface.create_for_handle = i965_surface_create_for_handle;
     device->intel.base.surface.create_for_name = i965_surface_create_for_name;
     device->intel.base.surface.create_from_cacheable_image = NULL;
     device->intel.base.surface.enable_scan_out = i965_surface_enable_scan_out;
