@@ -3054,6 +3054,8 @@ _cairo_surface_create_in_error (cairo_status_t status)
     case CAIRO_STATUS_FREETYPE_ERROR:
     case CAIRO_STATUS_WIN32_GDI_ERROR:
     case CAIRO_STATUS_TAG_ERROR:
+    case CAIRO_STATUS_METHOD_NOT_IMPLEMENTED:
+    case CAIRO_STATUS_INVALID_ARGUMENTS:
     default:
 	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
 	return (cairo_surface_t *) &_cairo_surface_nil;
