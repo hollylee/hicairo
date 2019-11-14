@@ -68,7 +68,7 @@
  * Defined if the MiniGUI surface backend is available.
  * This macro can be used to conditionally compile backend-specific code.
  *
- * Since: 1.17
+ * Since: 2.18
  **/
 
 static cairo_device_t *
@@ -737,7 +737,8 @@ static const cairo_surface_backend_t cairo_minigui_surface_backend = {
  *
  * Note that the DC will be locked until you call cairo_surface_finish on
  * the surface.
- * Since: 1.17
+ *
+ * Since: 2.18
  **/
 cairo_surface_t *
 cairo_minigui_surface_create (HDC hdc)
@@ -830,7 +831,7 @@ FAIL:
  *
  * Return value: the newly created surface
  *
- * Since: 1.17
+ * Since: 2.18
  **/
 cairo_surface_t *
 cairo_minigui_surface_create_with_memdc (cairo_format_t format,
@@ -868,7 +869,7 @@ cairo_minigui_surface_create_with_memdc (cairo_format_t format,
  *
  * Return value: the newly created surface
  *
- * Since: 1.17
+ * Since: 2.18
  **/
 cairo_surface_t *
 cairo_minigui_surface_create_with_memdc2 (HDC ref_dc,
@@ -900,7 +901,7 @@ _cairo_surface_is_minigui (cairo_surface_t *surface)
  *
  * Return value: the handle to the device context.
  *
- * Since: 1.17
+ * Since: 2.18
  **/
 HDC
 cairo_minigui_surface_get_dc (cairo_surface_t *surface)
@@ -923,7 +924,7 @@ cairo_minigui_surface_get_dc (cairo_surface_t *surface)
  *
  * Return value: the pointer to the image surface.
  *
- * Since: 1.17
+ * Since: 2.18
  **/
 cairo_surface_t *
 cairo_minigui_surface_get_image (cairo_surface_t *surface)
