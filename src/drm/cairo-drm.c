@@ -141,8 +141,9 @@ _cairo_drm_device_init (cairo_drm_device_t *dev,
     return dev;
 }
 
-cairo_device_t *
-cairo_drm_device_get (struct udev_device *device)
+/* VW: pass fd to avoid duplicated openning the device */
+static cairo_device_t *
+_cairo_drm_device_get_internal (struct udev_device *device, int fd)
 {
     static const struct dri_driver_entry {
 	uint32_t vendor_id;
@@ -172,6 +173,7 @@ cairo_drm_device_get (struct udev_device *device)
 	{ 0x8086, 0x29d2, _cairo_drm_i915_device_create }, /* Q33_G */
 	{ 0x8086, 0xa011, _cairo_drm_i915_device_create }, /* IGD_GM */
 	{ 0x8086, 0xa001, _cairo_drm_i915_device_create }, /* IGD_G */
+	{ 0x8086, 0x0412, _cairo_drm_i915_device_create }, /* GT2 */
 
 	/* XXX i830 */
 
@@ -188,8 +190,8 @@ cairo_drm_device_get (struct udev_device *device)
     struct udev_device *parent;
     const char *pci_id;
     uint32_t vendor_id, chip_id;
-    const char *path;
-    int i, fd;
+    const char *path = NULL;
+    int i;
 
     devid = udev_device_get_devnum (device);
 
@@ -207,6 +209,8 @@ cairo_drm_device_get (struct udev_device *device)
         dev = NULL;
 	goto DONE;
     }
+
+    //fprintf(stderr, "VW: DRI device vendor id (0x%x) chip id (0x%x)\n", vendor_id, chip_id);
 
 #if CAIRO_HAS_GALLIUM_SURFACE
     if (getenv ("CAIRO_GALLIUM_FORCE"))
@@ -232,20 +236,24 @@ cairo_drm_device_get (struct udev_device *device)
 	}
     }
 
-    path = udev_device_get_devnode (device);
-    if (path == NULL)
-	path = "/dev/dri/card0"; /* XXX buggy udev? */
+    /* VW: only open the device if fd < 0 */
+    if (fd < 0) {
+	path = udev_device_get_devnode (device);
+	if (path == NULL)
+	    path = "/dev/dri/card0"; /* XXX buggy udev? */
 
-    fd = open (path, O_RDWR);
-    if (fd == -1) {
-	/* XXX more likely to be a permissions issue... */
-	_cairo_error_throw (CAIRO_STATUS_FILE_NOT_FOUND);
-	dev = NULL;
-	goto DONE;
+	fd = open (path, O_RDWR);
+	if (fd == -1) {
+	    /* XXX more likely to be a permissions issue... */
+	    _cairo_error_throw (CAIRO_STATUS_FILE_NOT_FOUND);
+	    dev = NULL;
+	    goto DONE;
+	}
     }
 
     dev = driver_map[i].create_func (fd, devid, vendor_id, chip_id);
-    if (dev == NULL)
+    /* VW: use path as the flag that indicates fd is newly opened */
+    if (dev == NULL && path != NULL)
 	close (fd);
 
   DONE:
@@ -255,6 +263,12 @@ cairo_drm_device_get (struct udev_device *device)
         return _cairo_device_create_in_error (CAIRO_STATUS_DEVICE_ERROR);
     else
         return &dev->base;
+}
+
+cairo_device_t *
+cairo_drm_device_get (struct udev_device *device)
+{
+    return _cairo_drm_device_get_internal (device, -1);
 }
 slim_hidden_def (cairo_drm_device_get);
 
@@ -275,7 +289,7 @@ cairo_drm_device_get_for_fd (int fd)
 
     device = udev_device_new_from_devnum (udev, 'c', st.st_rdev);
     if (device != NULL) {
-	dev = cairo_drm_device_get (device);
+	dev = _cairo_drm_device_get_internal (device, fd);
 	udev_device_unref (device);
     }
 
@@ -312,7 +326,7 @@ cairo_drm_device_default (void)
 	    udev_device_new_from_syspath (udev,
 		    udev_list_entry_get_name (entry));
 
-	dev = cairo_drm_device_get (device);
+	dev = _cairo_drm_device_get_internal (device, -1);
 
 	udev_device_unref (device);
 
