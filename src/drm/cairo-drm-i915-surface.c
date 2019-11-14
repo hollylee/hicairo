@@ -2643,6 +2643,63 @@ i915_surface_create (cairo_drm_device_t *base_dev,
 }
 
 static cairo_surface_t *
+i915_surface_create_for_handle (cairo_drm_device_t *base_dev,
+			        unsigned int handle,
+			        unsigned int size,
+			        cairo_format_t format,
+			        int width, int height, int stride)
+{
+    i915_surface_t *surface;
+
+    /* Vol I, p134: size restrictions for textures */
+    /* Vol I, p129: destination surface stride must be a multiple of 32 bytes */
+    if (stride < cairo_format_stride_for_width (format, (width + 3) & -4) ||
+	stride & 31)
+    {
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_INVALID_STRIDE));
+    }
+
+    switch (format) {
+    default:
+    case CAIRO_FORMAT_INVALID:
+    case CAIRO_FORMAT_A1:
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_INVALID_FORMAT));
+    case CAIRO_FORMAT_ARGB32:
+    case CAIRO_FORMAT_RGB16_565:
+    case CAIRO_FORMAT_RGB24:
+    case CAIRO_FORMAT_A8:
+	break;
+    }
+
+    surface = _cairo_malloc (sizeof (i915_surface_t));
+    if (unlikely (surface == NULL))
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_NO_MEMORY));
+
+    i915_surface_init (surface, base_dev, format, width, height);
+
+    if (width && height) {
+	surface->intel.drm.stride = stride;
+	surface->map1 = (surface->intel.drm.stride/4 - 1) << MS4_PITCH_SHIFT;
+
+	surface->intel.drm.bo =
+	    &intel_bo_create_for_handle (to_intel_device (&base_dev->base),
+				       handle, size)->base;
+	if (unlikely (surface->intel.drm.bo == NULL)) {
+	    free (surface);
+	    return _cairo_surface_create_in_error (_cairo_error (CAIRO_INT_STATUS_NO_MEMORY));
+	}
+	to_intel_bo (surface->intel.drm.bo)->stride = stride;
+
+	surface->map0 |= MS3_tiling (to_intel_bo (surface->intel.drm.bo)->tiling);
+    }
+
+    return &surface->intel.drm.base;
+}
+
+static cairo_surface_t *
 i915_surface_create_for_name (cairo_drm_device_t *base_dev,
 			      unsigned int name,
 			      cairo_format_t format,
@@ -3064,6 +3121,7 @@ _cairo_drm_i915_device_create (int fd, dev_t dev_id, int vendor_id, int chip_id)
 	cairo_list_init (&device->image_caches[n]);
 
     device->intel.base.surface.create = i915_surface_create;
+    device->intel.base.surface.create_for_handle = i915_surface_create_for_handle;
     device->intel.base.surface.create_for_name = i915_surface_create_for_name;
     device->intel.base.surface.create_from_cacheable_image = i915_surface_create_from_cacheable_image;
 
