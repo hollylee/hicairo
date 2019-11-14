@@ -80,9 +80,9 @@
  * of the Software.
  *
  * Authors: Thomas Hellström <thomas-at-tungstengraphics-dot-com>
- *          Keith Whitwell <keithw-at-tungstengraphics-dot-com>
- *          Eric Anholt <eric@anholt.net>
- *          Dave Airlie <airlied@linux.ie>
+ *	  Keith Whitwell <keithw-at-tungstengraphics-dot-com>
+ *	  Eric Anholt <eric@anholt.net>
+ *	  Dave Airlie <airlied@linux.ie>
  */
 
 /* XXX
@@ -170,7 +170,7 @@ static const cairo_surface_backend_t i915_surface_backend;
 
 static cairo_surface_t *
 i915_surface_create_from_cacheable_image (cairo_drm_device_t *base_dev,
-	                                   cairo_surface_t *source);
+					   cairo_surface_t *source);
 
 static cairo_status_t
 i915_bo_exec (i915_device_t *device, intel_bo_t *bo, uint32_t offset)
@@ -212,7 +212,7 @@ i915_bo_exec (i915_device_t *device, intel_bo_t *bo, uint32_t offset)
     if (device->debug & I915_DEBUG_SYNC && ret == 0)
 	ret = ! intel_bo_wait (&device->intel, bo);
 
-    if (0 && ret) {
+    if (ret) {
 	int n, m;
 
 	fprintf (stderr, "Batch submission failed: %d\n", errno);
@@ -1871,7 +1871,7 @@ typedef struct {
 } composite_polygon_info_t;
 
 static cairo_status_t
-_composite_polygon_spans (void                          *closure,
+_composite_polygon_spans (void			  *closure,
 			  cairo_span_renderer_t		*renderer,
 			  const cairo_rectangle_int_t   *extents)
 {
@@ -1918,19 +1918,16 @@ i915_surface_fill_with_alpha (void			*abstract_dst,
     i915_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
     composite_polygon_info_t info;
-#if 0
     cairo_box_t boxes_stack[32], *clip_boxes = boxes_stack;
     int num_boxes = ARRAY_LENGTH (boxes_stack);
-#else
-    cairo_box_t *clip_boxes;
-    int num_boxes;
-#endif
+#if 0 // VW
     cairo_clip_t* local_clip;
     cairo_bool_t have_clip = FALSE;
+#endif
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_fill (&extents,
-#if 0
+#if 0 // VW
 							dst->intel.drm.width,
 							dst->intel.drm.height,
 #else
@@ -1954,12 +1951,14 @@ i915_surface_fill_with_alpha (void			*abstract_dst,
 	}
     }
 
+#if 0 // VW
     if (clip != NULL) {
 	local_clip = _cairo_clip_copy (clip);
 	have_clip = TRUE;
     }
+#endif
 
-#if 0
+#if 0 // VW
     status = _cairo_clip_to_boxes (&clip, &extents, &clip_boxes, &num_boxes);
     if (unlikely (status)) {
 	if (have_clip)
@@ -1968,8 +1967,16 @@ i915_surface_fill_with_alpha (void			*abstract_dst,
 	return status;
     }
 #else
-    clip_boxes = clip->boxes;
-    num_boxes = clip->num_boxes;
+    if (clip) {
+	clip_boxes = clip->boxes;
+	num_boxes = clip->num_boxes;
+    }
+    else {
+	const cairo_rectangle_int_t *rect;
+	rect = extents.is_bounded ? &extents.bounded : &extents.unbounded;
+	_cairo_box_from_rectangle (clip_boxes, rect);
+	num_boxes = 1;
+    }
 #endif
 
     assert (! _cairo_path_fixed_fill_is_empty (path));
@@ -2027,13 +2034,13 @@ CLEANUP_POLYGON:
     _cairo_polygon_fini (&info.polygon);
 
 CLEANUP_BOXES:
-#if 0
+#if 0 // VW
     if (clip_boxes != boxes_stack)
 	free (clip_boxes);
-#endif
 
     if (have_clip)
 	_cairo_clip_destroy (local_clip);
+#endif
 
     return status;
 }
@@ -2047,17 +2054,14 @@ i915_surface_paint_with_alpha (void			*abstract_dst,
 {
     i915_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
+#if 0 // VW
     cairo_clip_t *local_clip;
     cairo_bool_t have_clip = FALSE;
+#endif
     const cairo_clip_path_t *clip_path;
     cairo_boxes_t boxes;
-#if 0
     int num_boxes = ARRAY_LENGTH (boxes.boxes_embedded);
     cairo_box_t *clip_boxes = boxes.boxes_embedded;
-#else
-    int num_boxes;
-    cairo_box_t *clip_boxes;
-#endif
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_paint (&extents,
@@ -2075,12 +2079,12 @@ i915_surface_paint_with_alpha (void			*abstract_dst,
     if (_cairo_clip_contains_extents (clip, &extents))
 	clip = NULL;
 
+#if 0 // VW
     if (clip != NULL) {
 	local_clip = _cairo_clip_copy (clip);
 	have_clip = TRUE;
     }
 
-#if 0
     status = _cairo_clip_to_boxes (&clip, &extents, &clip_boxes, &num_boxes);
     if (unlikely (status)) {
 	if (have_clip)
@@ -2089,8 +2093,16 @@ i915_surface_paint_with_alpha (void			*abstract_dst,
 	return status;
     }
 #else
-    clip_boxes = clip->boxes;
-    num_boxes = clip->num_boxes;
+    if (clip) {
+	clip_boxes = clip->boxes;
+	num_boxes = clip->num_boxes;
+    }
+    else {
+	const cairo_rectangle_int_t *rect;
+	rect = extents.is_bounded ? &extents.bounded : &extents.unbounded;
+	_cairo_box_from_rectangle (clip_boxes, rect);
+	num_boxes = 1;
+    }
 #endif
 
     /* If the clip cannot be reduced to a set of boxes, we will need to
@@ -2122,8 +2134,10 @@ i915_surface_paint_with_alpha (void			*abstract_dst,
 	free (clip_boxes);
 #endif
 
+#if 0 // VW
     if (have_clip)
 	_cairo_clip_destroy (local_clip);
+#endif
 
     return status;
 }
@@ -2318,19 +2332,16 @@ i915_surface_stroke (void			*abstract_dst,
     i915_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
     composite_polygon_info_t info;
-#if 0
     cairo_box_t boxes_stack[32], *clip_boxes = boxes_stack;
     int num_boxes = ARRAY_LENGTH (boxes_stack);
-#else
-    cairo_box_t *clip_boxes;
-    int num_boxes;
-#endif
+#if 0 // VW
     cairo_clip_t* local_clip;
     cairo_bool_t have_clip = FALSE;
+#endif
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_stroke (&extents,
-#if 0
+#if 0 // VW
 							  dst->intel.drm.width,
 							  dst->intel.drm.height,
 #else
@@ -2345,10 +2356,12 @@ i915_surface_stroke (void			*abstract_dst,
     if (_cairo_clip_contains_extents (clip, &extents))
 	clip = NULL;
 
+#if 0 // VW
     if (clip != NULL) {
 	local_clip = _cairo_clip_copy (clip);
 	have_clip = TRUE;
     }
+#endif
 
 #if 0
     status = _cairo_clip_to_boxes (&clip, &extents, &clip_boxes, &num_boxes);
@@ -2359,8 +2372,16 @@ i915_surface_stroke (void			*abstract_dst,
 	return status;
     }
 #else
-    clip_boxes = clip->boxes;
-    num_boxes = clip->num_boxes;
+    if (clip) {
+	clip_boxes = clip->boxes;
+	num_boxes = clip->num_boxes;
+    }
+    else {
+	const cairo_rectangle_int_t *rect;
+	rect = extents.is_bounded ? &extents.bounded : &extents.unbounded;
+	_cairo_box_from_rectangle (clip_boxes, rect);
+	num_boxes = 1;
+    }
 #endif
 
     if (_cairo_path_fixed_stroke_is_rectilinear (path)) {
@@ -2420,13 +2441,13 @@ CLEANUP_POLYGON:
     _cairo_polygon_fini (&info.polygon);
 
 CLEANUP_BOXES:
-#if 0
+#if 0 // VW
     if (clip_boxes != boxes_stack)
 	free (clip_boxes);
-#endif
 
     if (have_clip)
 	_cairo_clip_destroy (local_clip);
+#endif
 
     return status;
 }
@@ -2549,7 +2570,7 @@ i915_surface_init (i915_surface_t *surface,
 
 cairo_surface_t *
 i915_surface_create_internal (cairo_drm_device_t *base_dev,
-		              cairo_format_t format,
+			      cairo_format_t format,
 			      int width, int height,
 			      uint32_t tiling,
 			      cairo_bool_t gpu_target)
@@ -2639,15 +2660,15 @@ i915_surface_create (cairo_drm_device_t *base_dev,
     }
 
     return i915_surface_create_internal (base_dev, format, width, height,
-	                                 I915_TILING_DEFAULT, TRUE);
+					 I915_TILING_DEFAULT, TRUE);
 }
 
 static cairo_surface_t *
 i915_surface_create_for_handle (cairo_drm_device_t *base_dev,
-			        unsigned int handle,
-			        unsigned int size,
-			        cairo_format_t format,
-			        int width, int height, int stride)
+				unsigned int handle,
+				unsigned int size,
+				cairo_format_t format,
+				int width, int height, int stride)
 {
     i915_surface_t *surface;
 
@@ -2757,7 +2778,7 @@ i915_surface_create_for_name (cairo_drm_device_t *base_dev,
 
 static cairo_int_status_t
 i915_buffer_cache_init (intel_buffer_cache_t *cache,
-		        i915_device_t *device,
+			i915_device_t *device,
 			cairo_format_t format,
 			int width, int height)
 {
@@ -2815,7 +2836,7 @@ i915_node_destroy (cairo_rtree_node_t *node)
 {
     // FIXME
     fprintf(stderr, "%s: do something to destroy the rtree node: %p\n",
-        __func__, node);
+	__func__, node);
 }
 
 i915_surface_t *
@@ -3079,8 +3100,9 @@ _cairo_drm_i915_device_create (int fd, dev_t dev_id, int vendor_id, int chip_id)
     uint64_t gtt_size;
     int n;
 
-    if (! intel_info (fd, &gtt_size))
+    if (!intel_info (fd, &gtt_size)) {
 	return NULL;
+    }
 
     device = _cairo_malloc (sizeof (i915_device_t));
     if (device == NULL)
