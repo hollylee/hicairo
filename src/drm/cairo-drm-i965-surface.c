@@ -343,7 +343,7 @@ i965_exec (i965_device_t *device, uint32_t offset)
     execbuf.rsvd1 = 0;
     execbuf.rsvd2 = 0;
 
-#if 1
+#if 0
     {
 	int n;
 	const size_t sz = (sizeof(struct drm_i915_gem_exec_object2) +
