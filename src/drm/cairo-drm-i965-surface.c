@@ -338,17 +338,43 @@ i965_exec (i965_device_t *device, uint32_t offset)
 #if 0 // VW
     execbuf.flags = I915_GEM_3D_PIPELINE;
 #else /* FIXME */
-    execbuf.flags = I915_EXEC_RENDER | I915_EXEC_NO_RELOC;
+    execbuf.flags = I915_EXEC_RENDER;
 #endif
     execbuf.rsvd1 = 0;
     execbuf.rsvd2 = 0;
 
-#if 0
-    fprintf (stderr, "exec: offset=%d, length=%d, buffers=%d\n",
-	    offset, device->batch.used, device->exec.count);
-    intel_dump_batchbuffer ((uint32_t *) device->batch.data,
-			    device->batch.used,
-			    device->intel.base.chip_id);
+#if 1
+    {
+	int n;
+	const size_t sz = (sizeof(struct drm_i915_gem_exec_object2) +
+			   sizeof(uintptr_t) +
+			   sizeof(unsigned int));
+
+	fprintf (stderr, "   execbuf.buffer_count: %d\n", execbuf.buffer_count);
+	if (execbuf.buffer_count < 1 || execbuf.buffer_count > SIZE_MAX / sz - 1) {
+	    fprintf (stderr, "bad buffer_count\n");
+	}
+	fprintf (stderr, "   execbuf.batch_start_offset: %d\n", execbuf.batch_start_offset);
+	fprintf (stderr, "   execbuf.batch_len: %d\n", execbuf.batch_len);
+	if ((execbuf.batch_start_offset | execbuf.batch_len) & 0x7) {
+	    fprintf (stderr, "   bad execbuf.batch_start_offset or execbuf.batch_len\n");
+	}
+	fprintf (stderr, "exec: offset=%d, length=%d, buffers=%d\n",
+		offset, device->batch.used, device->exec.count);
+
+	fprintf (stderr, "   buffers:\n");
+	for (n = 0; n < device->exec.count; n++) {
+	    fprintf (stderr, "  exec[%d] = %d, gtt = %qx\n",
+		    n,
+		    device->exec.exec[n].handle,
+		    device->exec.exec[n].offset);
+	}
+
+	intel_dump_batchbuffer ((uint32_t *) device->batch.data,
+				device->batch.used,
+				device->intel.base.chip_id);
+    }
+
 #endif
 
     ret = 0;
