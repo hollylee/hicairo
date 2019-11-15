@@ -161,6 +161,7 @@ _cairo_drm_device_get_internal (struct udev_device *device, int fd)
 	{ 0x8086, 0x2e12, _cairo_drm_i965_device_create }, /* Q45_G */
 	{ 0x8086, 0x2e32, _cairo_drm_i965_device_create }, /* G41_G */
 	{ 0x8086, 0x2a42, _cairo_drm_i965_device_create }, /* GM45_GM */
+	{ 0x8086, 0x0412, _cairo_drm_i965_device_create }, /* GT2 */
 
 	{ 0x8086, 0x2582, _cairo_drm_i915_device_create }, /* I915_G */
 	{ 0x8086, 0x2592, _cairo_drm_i915_device_create }, /* I915_GM */
@@ -173,7 +174,6 @@ _cairo_drm_device_get_internal (struct udev_device *device, int fd)
 	{ 0x8086, 0x29d2, _cairo_drm_i915_device_create }, /* Q33_G */
 	{ 0x8086, 0xa011, _cairo_drm_i915_device_create }, /* IGD_GM */
 	{ 0x8086, 0xa001, _cairo_drm_i915_device_create }, /* IGD_G */
-	{ 0x8086, 0x0412, _cairo_drm_i915_device_create }, /* GT2 */
 
 	/* XXX i830 */
 
