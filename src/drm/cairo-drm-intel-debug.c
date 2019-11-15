@@ -1138,6 +1138,8 @@ i915_debug_packet (struct debug_stream *stream,
     uint32_t *ptr = (uint32_t *)(stream->ptr + stream->offset);
     uint32_t cmd = *ptr;
 
+    fprintf (stderr, "Information for cmd: %x [%x]\n", (cmd >> 29) & 7, cmd);
+
     switch (((cmd >> 29) & 0x7)) {
     case 0x0:
 	switch ((cmd >> 23) & 0x3f) {
