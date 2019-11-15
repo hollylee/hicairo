@@ -197,10 +197,10 @@ i915_bo_exec (i915_device_t *device, intel_bo_t *bo, uint32_t offset)
     execbuf.buffer_count = device->batch.exec_count;
     execbuf.batch_start_offset = offset;
     execbuf.batch_len = (device->batch.used << 2) + sizeof (device->batch_header);
-    execbuf.DR1 = 0;
-    execbuf.DR4 = 0;
     execbuf.num_cliprects = 0;
     execbuf.cliprects_ptr = 0;
+    execbuf.DR1 = 0;
+    execbuf.DR4 = 0;
     execbuf.flags = 0;
     execbuf.rsvd1 = 0;
     execbuf.rsvd2 = 0;
@@ -214,8 +214,20 @@ i915_bo_exec (i915_device_t *device, intel_bo_t *bo, uint32_t offset)
 
     if (ret) {
 	int n, m;
+	const size_t sz = (sizeof(struct drm_i915_gem_exec_object2) +
+			   sizeof(uintptr_t) +
+			   sizeof(unsigned int));
 
-	fprintf (stderr, "Batch submission failed: %d\n", errno);
+	fprintf (stderr, "Batch submission failed: %m (%d)\n", errno);
+	fprintf (stderr, "   execbuf.buffer_count: %d\n", execbuf.buffer_count);
+	if (execbuf.buffer_count < 1 || execbuf.buffer_count > SIZE_MAX / sz - 1) {
+	    fprintf (stderr, "bad buffer_count\n");
+	}
+	fprintf (stderr, "   execbuf.batch_start_offset: %d\n", execbuf.batch_start_offset);
+	fprintf (stderr, "   execbuf.batch_len: %d\n", execbuf.batch_len);
+	if ((execbuf.batch_start_offset | execbuf.batch_len) & 0x7) {
+	    fprintf (stderr, "   bad execbuf.batch_start_offset or execbuf.batch_len\n");
+	}
 	fprintf (stderr, "   relocation entries: %d/%d\n",
 		 device->batch.reloc_count, I915_MAX_RELOCS);
 	fprintf (stderr, "   gtt size: (%zd/%zd), (%zd/%zd)\n",
@@ -1927,12 +1939,7 @@ i915_surface_fill_with_alpha (void			*abstract_dst,
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_fill (&extents,
-#if 0 // VW
-							dst->intel.drm.width,
-							dst->intel.drm.height,
-#else
 							&dst->intel.drm.base,
-#endif
 							op, source, path,
 							clip);
     if (unlikely (status))
@@ -2065,12 +2072,7 @@ i915_surface_paint_with_alpha (void			*abstract_dst,
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_paint (&extents,
-#if 0
-							 dst->intel.drm.width,
-							 dst->intel.drm.height,
-#else
 							 &dst->intel.drm.base,
-#endif
 							 op, source,
 							 clip);
     if (unlikely (status))
@@ -2129,12 +2131,10 @@ i915_surface_paint_with_alpha (void			*abstract_dst,
 					    &extents, clip, opacity);
     }
 
-#if 0
+#if 0 // VW
     if (clip_boxes != boxes.boxes_embedded)
 	free (clip_boxes);
-#endif
 
-#if 0 // VW
     if (have_clip)
 	_cairo_clip_destroy (local_clip);
 #endif
@@ -2182,12 +2182,7 @@ i915_surface_mask (void				*abstract_dst,
     }
 
     status = _cairo_composite_rectangles_init_for_mask (&extents,
-#if 0
-							dst->intel.drm.width,
-							dst->intel.drm.height,
-#else
 							&dst->intel.drm.base,
-#endif
 							op, source, mask, clip);
     if (unlikely (status))
 	return status;
@@ -2341,12 +2336,7 @@ i915_surface_stroke (void			*abstract_dst,
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_stroke (&extents,
-#if 0 // VW
-							  dst->intel.drm.width,
-							  dst->intel.drm.height,
-#else
 							  &dst->intel.drm.base,
-#endif
 							  op, source,
 							  path, stroke_style, ctm,
 							  clip);
@@ -3132,6 +3122,12 @@ _cairo_drm_i915_device_create (int fd, dev_t dev_id, int vendor_id, int chip_id)
     device->batch.fences = 0;
 
     memcpy (device->batch_header, i915_batch_setup, sizeof (i915_batch_setup));
+#if 0 // VW
+    for (n = 0; n < 13; n++) {
+        fprintf (stderr, "batch_header: %X @ %d\n", i915_batch_setup[n], n);
+    }
+#endif
+
     device->vbo = 0;
     device->vbo_offset = 0;
     device->vbo_used = 0;
