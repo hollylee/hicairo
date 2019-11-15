@@ -385,7 +385,7 @@ i915_disassemble_program (const uint32_t * program, uint32_t sz)
 	else if (opcode == D0_DCL)
 	    print_dcl_op(opcode >> 24, program);
 	else
-	    fprintf (stderr, "Unknown opcode 0x%x\n", opcode);
+	    fprintf (stderr, "Unknown opcode 0x%X\n", opcode);
     }
 
     fprintf (stderr, "\tEND-PROGRAM\n\n");
@@ -424,10 +424,10 @@ debug_chain (struct debug_stream *stream, const char *name, uint32_t len)
     stream->offset = ptr[1] & ~0x3;
 
     if (stream->offset < old_offset)
-	fprintf (stderr, "\n... skipping backwards from 0x%x --> 0x%x ...\n\n",
+	fprintf (stderr, "\n... skipping backwards from 0x%X --> 0x%X ...\n\n",
 		 old_offset, stream->offset );
     else
-	fprintf (stderr, "\n... skipping from 0x%x --> 0x%x ...\n\n",
+	fprintf (stderr, "\n... skipping from 0x%X --> 0x%X ...\n\n",
 		 old_offset, stream->offset );
 
     return TRUE;
@@ -461,7 +461,7 @@ debug_variable_length_prim (struct debug_stream *stream)
 	unsigned himask = 0xffffffffU >> (31 - (hi));		\
 	fprintf (stderr, "\t\t ");				\
 	fprintf (stderr, __VA_ARGS__);				\
-	fprintf (stderr, ": 0x%x\n", ((dw) & himask) >> (lo));	\
+	fprintf (stderr, ": 0x%X\n", ((dw) & himask) >> (lo));	\
     } while (0)
 
 #define MBZ(dw, hi, lo) do {				\
@@ -491,7 +491,7 @@ debug_load_immediate (struct debug_stream *stream,
     uint32_t j = 0;
 
     fprintf (stderr, "%04x:  ", stream->offset);
-    fprintf (stderr, "%s (%d dwords, flags: %x):\n", name, len, bits);
+    fprintf (stderr, "%s (%d dwords, flags: %X):\n", name, len, bits);
     fprintf (stderr, "\t0x%08x\n",  ptr[j++]);
 
     if (bits & (1<<0)) {
@@ -603,26 +603,26 @@ debug_load_indirect (struct debug_stream *stream,
 	if (bits & (1<<i)) {
 	    switch (1<<(8+i)) {
 	    case LI0_STATE_STATIC_INDIRECT:
-		fprintf (stderr, "        STATIC: 0x%08x | %x\n", ptr[j]&~3, ptr[j]&3); j++;
+		fprintf (stderr, "        STATIC: 0x%08x | %X\n", ptr[j]&~3, ptr[j]&3); j++;
 		fprintf (stderr, "                0x%08x\n", ptr[j++]);
 		break;
 	    case LI0_STATE_DYNAMIC_INDIRECT:
-		fprintf (stderr, "       DYNAMIC: 0x%08x | %x\n", ptr[j]&~3, ptr[j]&3); j++;
+		fprintf (stderr, "       DYNAMIC: 0x%08x | %X\n", ptr[j]&~3, ptr[j]&3); j++;
 		break;
 	    case LI0_STATE_SAMPLER:
-		fprintf (stderr, "       SAMPLER: 0x%08x | %x\n", ptr[j]&~3, ptr[j]&3); j++;
+		fprintf (stderr, "       SAMPLER: 0x%08x | %X\n", ptr[j]&~3, ptr[j]&3); j++;
 		fprintf (stderr, "                0x%08x\n", ptr[j++]);
 		break;
 	    case LI0_STATE_MAP:
-		fprintf (stderr, "           MAP: 0x%08x | %x\n", ptr[j]&~3, ptr[j]&3); j++;
+		fprintf (stderr, "           MAP: 0x%08x | %X\n", ptr[j]&~3, ptr[j]&3); j++;
 		fprintf (stderr, "                0x%08x\n", ptr[j++]);
 		break;
 	    case LI0_STATE_PROGRAM:
-		fprintf (stderr, "       PROGRAM: 0x%08x | %x\n", ptr[j]&~3, ptr[j]&3); j++;
+		fprintf (stderr, "       PROGRAM: 0x%08x | %X\n", ptr[j]&~3, ptr[j]&3); j++;
 		fprintf (stderr, "                0x%08x\n", ptr[j++]);
 		break;
 	    case LI0_STATE_CONSTANTS:
-		fprintf (stderr, "     CONSTANTS: 0x%08x | %x\n", ptr[j]&~3, ptr[j]&3); j++;
+		fprintf (stderr, "     CONSTANTS: 0x%08x | %X\n", ptr[j]&~3, ptr[j]&3); j++;
 		fprintf (stderr, "                0x%08x\n", ptr[j++]);
 		break;
 	    default:
@@ -1138,7 +1138,7 @@ i915_debug_packet (struct debug_stream *stream,
     uint32_t *ptr = (uint32_t *)(stream->ptr + stream->offset);
     uint32_t cmd = *ptr;
 
-    fprintf (stderr, "Information for cmd: %x [%x]\n", (cmd >> 29) & 7, cmd);
+    fprintf (stderr, "Information for cmd: %X [%X]\n", (cmd >> 29) & 7, cmd);
 
     switch (((cmd >> 29) & 0x7)) {
     case 0x0:
@@ -1183,7 +1183,7 @@ i915_debug_packet (struct debug_stream *stream,
 	break;
     }
 
-    fprintf (stderr, "Bogus cmd: %x [%x]\n", (cmd >> 29) & 7, cmd);
+    fprintf (stderr, "Bogus cmd: %X [%X]\n", (cmd >> 29) & 7, cmd);
     ASSERT_NOT_REACHED;
     return 0;
 }

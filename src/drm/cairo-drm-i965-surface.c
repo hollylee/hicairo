@@ -335,16 +335,16 @@ i965_exec (i965_device_t *device, uint32_t offset)
     execbuf.DR4 = 0;
     execbuf.num_cliprects = 0;
     execbuf.cliprects_ptr = 0;
-#if 0
+#if 0 // VW
     execbuf.flags = I915_GEM_3D_PIPELINE;
 #else /* FIXME */
-    execbuf.flags = 0;
+    execbuf.flags = I915_EXEC_RENDER | I915_EXEC_NO_RELOC;
 #endif
     execbuf.rsvd1 = 0;
     execbuf.rsvd2 = 0;
 
 #if 0
-    printf ("exec: offset=%d, length=%d, buffers=%d\n",
+    fprintf (stderr, "exec: offset=%d, length=%d, buffers=%d\n",
 	    offset, device->batch.used, device->exec.count);
     intel_dump_batchbuffer ((uint32_t *) device->batch.data,
 			    device->batch.used,
@@ -1104,6 +1104,18 @@ _clip_and_composite_boxes (i965_surface_t *dst,
 					  extents, clip);
 }
 
+static inline void
+dump_clip_boxes(const cairo_box_t *clip_boxes, int num_boxes)
+{
+    int i;
+
+    fprintf (stderr, "clip boxes:\n");
+    for (i = 0; i < num_boxes; i++)
+        fprintf (stderr, "p1 (%f, %f), p2 (%f, %f)\n",
+                _cairo_fixed_to_double (clip_boxes[i].p1.x), _cairo_fixed_to_double (clip_boxes[i].p1.y),
+                _cairo_fixed_to_double (clip_boxes[i].p2.x), _cairo_fixed_to_double (clip_boxes[i].p2.y));
+}
+
 static cairo_int_status_t
 i965_surface_paint (void			*abstract_dst,
 		    cairo_operator_t		 op,
@@ -1157,6 +1169,7 @@ i965_surface_paint (void			*abstract_dst,
 	_cairo_box_from_rectangle (clip_boxes, rect);
 	num_boxes = 1;
     }
+    //dump_clip_boxes(clip_boxes, num_boxes);
 #endif
 
     _cairo_boxes_init_for_array (&boxes, clip_boxes, num_boxes);
@@ -1377,6 +1390,7 @@ i965_surface_stroke (void			*abstract_dst,
 	_cairo_box_from_rectangle (clip_boxes, rect);
 	num_boxes = 1;
     }
+    //dump_clip_boxes(clip_boxes, num_boxes);
 #endif
 
     if (_cairo_path_fixed_stroke_is_rectilinear (path)) {
@@ -1500,6 +1514,7 @@ i965_surface_fill (void			*abstract_dst,
 	_cairo_box_from_rectangle (clip_boxes, rect);
 	num_boxes = 1;
     }
+    // dump_clip_boxes(clip_boxes, num_boxes);
 #endif
 
     assert (! _cairo_path_fixed_fill_is_empty (path));
@@ -1969,13 +1984,16 @@ _cairo_drm_i965_device_create (int fd, dev_t dev, int vendor_id, int chip_id)
 	goto CLEANUP;
 
     device->is_g4x = IS_G4X (chip_id);
-    //device->is_g5x = IS_G5X (chip_id);
 
     device->intel.base.surface.create = i965_surface_create;
     device->intel.base.surface.create_for_handle = i965_surface_create_for_handle;
     device->intel.base.surface.create_for_name = i965_surface_create_for_name;
     device->intel.base.surface.create_from_cacheable_image = NULL;
     device->intel.base.surface.enable_scan_out = i965_surface_enable_scan_out;
+
+    device->intel.base.surface.flink = _cairo_drm_surface_flink;
+    // device->intel.base.surface.enable_scan_out = i915_surface_enable_scan_out;
+    device->intel.base.surface.map_to_image = intel_surface_map_to_image;
 
     device->intel.base.device.flush = _i965_device_flush;
     device->intel.base.device.throttle = _i965_device_throttle;
@@ -1988,14 +2006,12 @@ _cairo_drm_i965_device_create (int fd, dev_t dev, int vendor_id, int chip_id)
     _cairo_freelist_init (&device->sf_freelist,
 			  sizeof (struct i965_sf_state));
 
-
     device->cc_states = _cairo_hash_table_create (i965_cc_state_equal);
     if (unlikely (device->cc_states == NULL))
 	goto CLEANUP_SF;
 
     _cairo_freelist_init (&device->cc_freelist,
 			  sizeof (struct i965_cc_state));
-
 
     device->wm_kernels = _cairo_hash_table_create (hash_equal);
     if (unlikely (device->wm_kernels == NULL))
