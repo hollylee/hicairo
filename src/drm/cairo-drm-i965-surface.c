@@ -1113,26 +1113,18 @@ i965_surface_paint (void			*abstract_dst,
     i965_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
     cairo_boxes_t boxes;
-#if 0
     cairo_box_t *clip_boxes = boxes.boxes_embedded;
     int num_boxes = ARRAY_LENGTH (boxes.boxes_embedded);
-#else
-    cairo_box_t *clip_boxes;
-    int num_boxes;
-#endif
+#if 0 // VW
     cairo_clip_t* local_clip;
     cairo_bool_t have_clip = FALSE;
+#endif
     cairo_status_t status;
 
     /* XXX unsupported operators? use pixel shader blending, eventually */
 
     status = _cairo_composite_rectangles_init_for_paint (&extents,
-#if 0
-							 dst->intel.drm.width,
-							 dst->intel.drm.height,
-#else
 							 &dst->intel.drm.base,
-#endif
 							 op, source,
 							 clip);
     if (unlikely (status))
@@ -1141,12 +1133,12 @@ i965_surface_paint (void			*abstract_dst,
     if (clip != NULL && _cairo_clip_contains_extents (clip, &extents))
 	clip = NULL;
 
+#if 0 // Vw
     if (clip != NULL) {
 	local_clip = _cairo_clip_copy (clip);
 	have_clip = TRUE;
     }
 
-#if 0
     status = _cairo_clip_to_boxes (&clip, &extents, &clip_boxes, &num_boxes);
     if (unlikely (status)) {
 	if (have_clip)
@@ -1155,21 +1147,29 @@ i965_surface_paint (void			*abstract_dst,
 	return status;
     }
 #else
-    clip_boxes = clip->boxes;
-    num_boxes = clip->num_boxes;
+    if (clip) {
+	clip_boxes = clip->boxes;
+	num_boxes = clip->num_boxes;
+    }
+    else {
+	const cairo_rectangle_int_t *rect;
+	rect = extents.is_bounded ? &extents.bounded : &extents.unbounded;
+	_cairo_box_from_rectangle (clip_boxes, rect);
+	num_boxes = 1;
+    }
 #endif
 
     _cairo_boxes_init_for_array (&boxes, clip_boxes, num_boxes);
     status = _clip_and_composite_boxes (dst, op, source,
 					&boxes, CAIRO_ANTIALIAS_DEFAULT,
 					&extents, clip);
-#if 0
+#if 0 // VW
     if (clip_boxes != boxes.boxes_embedded)
 	free (clip_boxes);
-#endif
 
     if (have_clip)
 	_cairo_clip_destroy (local_clip);
+#endif
 
     return status;
 }
@@ -1191,12 +1191,7 @@ i965_surface_mask (void				*abstract_dst,
     cairo_status_t status;
 
     status = _cairo_composite_rectangles_init_for_mask (&extents,
-#if 0
-							dst->intel.drm.width,
-							dst->intel.drm.height,
-#else
 							&dst->intel.drm.base,
-#endif
 							op, source, mask, clip);
     if (unlikely (status))
 	return status;
@@ -1339,24 +1334,16 @@ i965_surface_stroke (void			*abstract_dst,
     i965_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
     composite_polygon_info_t info;
-#if 0
     cairo_box_t boxes_stack[32], *clip_boxes = boxes_stack;
     int num_boxes = ARRAY_LENGTH (boxes_stack);
-#else
-    cairo_box_t *clip_boxes;
-    int num_boxes;
-#endif
+#if 0 // VW
     cairo_clip_t* local_clip;
     cairo_bool_t have_clip = FALSE;
+#endif
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_stroke (&extents,
-#if 0
-							  dst->intel.drm.width,
-							  dst->intel.drm.height,
-#else
 							  &dst->intel.drm.base,
-#endif
 							  op, source,
 							  path, stroke_style, ctm,
 							  clip);
@@ -1366,12 +1353,12 @@ i965_surface_stroke (void			*abstract_dst,
     if (clip != NULL && _cairo_clip_contains_extents (clip, &extents))
 	clip = NULL;
 
+#if 0 // VW
     if (clip != NULL) {
 	local_clip = _cairo_clip_copy (clip);
 	have_clip = TRUE;
     }
 
-#if 0
     status = _cairo_clip_to_boxes (&clip, &extents, &clip_boxes, &num_boxes);
     if (unlikely (status)) {
 	if (have_clip)
@@ -1380,8 +1367,16 @@ i965_surface_stroke (void			*abstract_dst,
 	return status;
     }
 #else
-    clip_boxes = clip->boxes;
-    num_boxes = clip->num_boxes;
+    if (clip) {
+	clip_boxes = clip->boxes;
+	num_boxes = clip->num_boxes;
+    }
+    else {
+	const cairo_rectangle_int_t *rect;
+	rect = extents.is_bounded ? &extents.bounded : &extents.unbounded;
+	_cairo_box_from_rectangle (clip_boxes, rect);
+	num_boxes = 1;
+    }
 #endif
 
     if (_cairo_path_fixed_stroke_is_rectilinear (path)) {
@@ -1439,13 +1434,13 @@ CLEANUP_POLYGON:
     _cairo_polygon_fini (&info.polygon);
 
 CLEANUP_BOXES:
-#if 0
+#if 0 // VW
     if (clip_boxes != boxes_stack)
 	free (clip_boxes);
-#endif
 
     if (have_clip)
 	_cairo_clip_destroy (local_clip);
+#endif
 
     return status;
 }
@@ -1463,24 +1458,16 @@ i965_surface_fill (void			*abstract_dst,
     i965_surface_t *dst = abstract_dst;
     cairo_composite_rectangles_t extents;
     composite_polygon_info_t info;
-#if 0
     cairo_box_t boxes_stack[32], *clip_boxes = boxes_stack;
     int num_boxes = ARRAY_LENGTH (boxes_stack);
-#else
-    cairo_box_t *clip_boxes;
-    int num_boxes;
-#endif
+#if 0 // VW
     cairo_clip_t* local_clip;
     cairo_bool_t have_clip = FALSE;
+#endif
     cairo_int_status_t status;
 
     status = _cairo_composite_rectangles_init_for_fill (&extents,
-#if 0
-							dst->intel.drm.width,
-							dst->intel.drm.height,
-#else
 							&dst->intel.drm.base,
-#endif
 							op, source, path,
 							clip);
     if (unlikely (status))
@@ -1489,12 +1476,12 @@ i965_surface_fill (void			*abstract_dst,
     if (clip != NULL && _cairo_clip_contains_extents (clip, &extents))
 	clip = NULL;
 
+#if 0 // VW
     if (clip != NULL) {
 	local_clip = _cairo_clip_copy (clip);
 	have_clip = TRUE;
     }
 
-#if 0
     status = _cairo_clip_to_boxes (&clip, &extents, &clip_boxes, &num_boxes);
     if (unlikely (status)) {
 	if (have_clip)
@@ -1503,8 +1490,16 @@ i965_surface_fill (void			*abstract_dst,
 	return status;
     }
 #else
-    clip_boxes = clip->boxes;
-    num_boxes = clip->num_boxes;
+    if (clip) {
+	clip_boxes = clip->boxes;
+	num_boxes = clip->num_boxes;
+    }
+    else {
+	const cairo_rectangle_int_t *rect;
+	rect = extents.is_bounded ? &extents.bounded : &extents.unbounded;
+	_cairo_box_from_rectangle (clip_boxes, rect);
+	num_boxes = 1;
+    }
 #endif
 
     assert (! _cairo_path_fixed_fill_is_empty (path));
@@ -1559,13 +1554,13 @@ CLEANUP_POLYGON:
     _cairo_polygon_fini (&info.polygon);
 
 CLEANUP_BOXES:
-#if 0
+#if 0 // VW
     if (clip_boxes != boxes_stack)
 	free (clip_boxes);
-#endif
 
     if (have_clip)
 	_cairo_clip_destroy(local_clip);
+#endif
 
     return status;
 }
