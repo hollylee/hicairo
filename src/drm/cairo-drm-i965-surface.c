@@ -335,11 +335,7 @@ i965_exec (i965_device_t *device, uint32_t offset)
     execbuf.DR4 = 0;
     execbuf.num_cliprects = 0;
     execbuf.cliprects_ptr = 0;
-#if 0 // VW
-    execbuf.flags = I915_GEM_3D_PIPELINE;
-#else /* FIXME */
     execbuf.flags = I915_EXEC_RENDER;
-#endif
     execbuf.rsvd1 = 0;
     execbuf.rsvd2 = 0;
 
