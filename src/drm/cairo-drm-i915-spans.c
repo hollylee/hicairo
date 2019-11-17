@@ -614,7 +614,7 @@ i915_spans_init (i915_spans_t *spans,
     if (clip != NULL) {
 	cairo_region_t *clip_region = NULL;
 
-#if 0
+#if 0 // VW
 	status = _cairo_clip_get_region (clip, &clip_region);
 	assert (status == CAIRO_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
 	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
@@ -622,14 +622,14 @@ i915_spans_init (i915_spans_t *spans,
 
 	spans->clip_region = clip_region;
 	spans->need_clip_surface = status == CAIRO_INT_STATUS_UNSUPPORTED;
-#else /* FIXME */
-	clip_region = _cairo_clip_get_region (clip);
+#else
+	if (_cairo_clip_is_region (clip))
+	    clip_region = _cairo_clip_get_region (clip);
+	spans->need_clip_surface = clip_region == NULL;
 
 	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
 	    clip_region = NULL;
-
 	spans->clip_region = clip_region;
-	spans->need_clip_surface = FALSE;
 #endif
     }
 

@@ -164,7 +164,7 @@ i965_surface_mask_internal (i965_surface_t *dst,
     shader.mask.base.stride = mask->intel.drm.stride;
 
     if (clip != NULL) {
-#if 0
+#if 0 // VW
 	status = _cairo_clip_get_region (clip, &clip_region);
 	assert (status == CAIRO_INT_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
 
@@ -173,8 +173,12 @@ i965_surface_mask_internal (i965_surface_t *dst,
 
 	if (status == CAIRO_INT_STATUS_UNSUPPORTED)
 	    i965_shader_set_clip (&shader, clip);
-#else /* FIXME */
-	clip_region = _cairo_clip_get_region (clip);
+#else
+	if (_cairo_clip_is_region (clip))
+	    clip_region = _cairo_clip_get_region (clip);
+	if (clip_region == NULL)
+	    i965_shader_set_clip (&shader, clip);
+
 	if (clip_region != NULL && cairo_region_num_rectangles (clip_region) == 1)
 	    clip_region = NULL;
 #endif
@@ -248,12 +252,7 @@ i965_surface_show_glyphs (void			*abstract_surface,
 
 //VW    *num_remaining = 0;
     status = _cairo_composite_rectangles_init_for_glyphs (&extents,
-#if 0
-							  surface->intel.drm.width,
-							  surface->intel.drm.height,
-#else
 							  &surface->intel.drm.base,
-#endif
 							  op, source,
 							  scaled_font,
 							  g, num_glyphs,
@@ -266,7 +265,7 @@ i965_surface_show_glyphs (void			*abstract_surface,
 	clip = NULL;
 
     if (clip != NULL && extents.is_bounded) {
-#if 0
+#if 0 // VW
 	clip = _cairo_clip_init_copy (&local_clip, clip);
 	status = _cairo_clip_rectangle (clip, &extents.bounded);
 	if (unlikely (status))
@@ -327,14 +326,17 @@ i965_surface_show_glyphs (void			*abstract_surface,
 	    return status;
 
 	if (clip != NULL) {
-#if 0
+#if 0 // VW
 	    status = _cairo_clip_get_region (clip, &clip_region);
 	    assert (status == CAIRO_INT_STATUS_SUCCESS || status == CAIRO_INT_STATUS_UNSUPPORTED);
 
 	    if (status == CAIRO_INT_STATUS_UNSUPPORTED)
 		i965_shader_set_clip (&glyphs.shader, clip);
-#else   /* FIXME */
-	    clip_region = _cairo_clip_get_region (clip);
+#else
+	    if (_cairo_clip_is_region (clip))
+		clip_region = _cairo_clip_get_region (clip);
+	    if (clip_region == NULL)
+		i965_shader_set_clip (&glyphs.shader, clip);
 #endif
 	}
     }
@@ -365,13 +367,13 @@ i965_surface_show_glyphs (void			*abstract_surface,
 
     _cairo_scaled_font_freeze_cache (scaled_font);
     //private = _cairo_scaled_font_get_device (scaled_font, device);
-#if 0
+#if 0 // VW
     if (scaled_font->surface_private == NULL) {
 	scaled_font->surface_private = device;
 	scaled_font->surface_backend = surface->intel.drm.base.backend;
 	cairo_list_add (&scaled_font->link, &device->intel.fonts);
     }
-#else /* FIXME */
+#else // FIXME
     if (cairo_list_is_empty (&scaled_font->link))
 	cairo_list_add (&scaled_font->link, &device->intel.fonts);
 #endif

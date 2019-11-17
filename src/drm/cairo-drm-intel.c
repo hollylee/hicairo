@@ -837,7 +837,7 @@ intel_device_fini (intel_device_t *device)
 				   &device->fonts,
 				   link)
     {
-#if 0
+#if 0 // VW
 	_cairo_scaled_font_revoke_ownership (scaled_font);
 #else
 	_cairo_scaled_font_fini (scaled_font);
@@ -971,14 +971,14 @@ intel_glyph_cache_add_glyph (intel_device_t *device,
 	return _cairo_error (CAIRO_STATUS_INVALID_FORMAT);
     }
 
-#if 0
+#if 0 // VW
     scaled_glyph->surface_private = node;
 #else
     scaled_glyph->dev_private = node;
 #endif
 
     glyph= (intel_glyph_t *) node;
-#if 0
+#if 0 // VW
     glyph->node.owner = &scaled_glyph->surface_private;
 #else
     glyph->node.parent = scaled_glyph->dev_private;
@@ -1010,7 +1010,7 @@ intel_scaled_glyph_fini (cairo_scaled_glyph_t *scaled_glyph,
 {
     intel_glyph_t *glyph;
 
-#if 0
+#if 0 // VW
     glyph = scaled_glyph->surface_private;
 #else
     glyph = scaled_glyph->dev_private;

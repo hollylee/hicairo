@@ -292,7 +292,7 @@ static const cairo_surface_backend_t intel_surface_backend = {
     NULL, /* get_supported_mime_types */
     NULL, /* tag */
 
-#if 0
+#if 0 // VW
     NULL, /* composite */
     NULL, /* fill */
     NULL, /* trapezoids */
