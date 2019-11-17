@@ -2012,6 +2012,7 @@ _cairo_drm_i965_device_create (int fd, dev_t dev, int vendor_id, int chip_id)
 	goto CLEANUP;
 
     device->is_g4x = IS_G4X (chip_id);
+    device->is_haswell = IS_HSW (chip_id);
 
     device->intel.base.surface.create = i965_surface_create;
     device->intel.base.surface.create_for_handle = i965_surface_create_for_handle;
