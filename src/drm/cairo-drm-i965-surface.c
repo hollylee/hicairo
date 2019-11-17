@@ -472,6 +472,15 @@ _copy_to_bo_and_apply_relocations (i965_device_t *device,
     }
 }
 
+static void brw_emit_pipe_control_flush(i965_device_t *device, int flags)
+{
+    OUT_BATCH (BRW_PIPE_CONTROL | (5 - 2));
+    OUT_BATCH (flags);
+    OUT_BATCH (0);   /* Destination address */ 
+    OUT_BATCH (0);   /* Immediate data low DW */ 
+    OUT_BATCH (0);   /* Immediate data high DW */ 
+}
+
 cairo_status_t
 i965_device_flush (i965_device_t *device)
 {
@@ -484,6 +493,34 @@ i965_device_flush (i965_device_t *device)
 	return CAIRO_STATUS_SUCCESS;
 
     i965_flush_vertices (device);
+
+    if (device->is_haswell) {
+	/* From the Haswell PRM, Volume 2b, Command Reference: Instructions,
+	* 3DSTATE_CC_STATE_POINTERS > "Note":
+	*
+	* "SW must program 3DSTATE_CC_STATE_POINTERS command at the end of every
+	*  3D batch buffer followed by a PIPE_CONTROL with RC flush and CS stall."
+	*
+	* From the example in the docs, it seems to expect a regular pipe control
+	* flush here as well. We may have done it already, but meh.
+	*/
+	brw_emit_pipe_control_flush (device,
+		    BRW_PIPE_CONTROL_RENDER_TARGET_FLUSH |
+		    BRW_PIPE_CONTROL_INSTRUCTION_INVALIDATE |
+		    BRW_PIPE_CONTROL_CONST_CACHE_INVALIDATE |
+		    BRW_PIPE_CONTROL_DATA_CACHE_FLUSH |
+		    BRW_PIPE_CONTROL_DEPTH_CACHE_FLUSH |
+		    BRW_PIPE_CONTROL_VF_CACHE_INVALIDATE |
+		    BRW_PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE |
+		    BRW_PIPE_CONTROL_CS_STALL);
+
+	OUT_BATCH (CMD_3DSTATE_CC_STATE_POINTERS << 16 | (2 - 2));
+	OUT_BATCH (device->cc_state.offset | 1);
+
+	brw_emit_pipe_control_flush (device,
+		    BRW_PIPE_CONTROL_RENDER_TARGET_FLUSH |
+		    BRW_PIPE_CONTROL_CS_STALL);
+    }
 
     OUT_BATCH (MI_BATCH_BUFFER_END);
     /* Emit a padding dword if we aren't going to be quad-word aligned. */
