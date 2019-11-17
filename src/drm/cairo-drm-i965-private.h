@@ -350,6 +350,7 @@ struct i965_device {
     intel_device_t intel;
 
     cairo_bool_t is_g4x;
+    cairo_bool_t is_haswell;
 
     i965_shader_t *shader; /* note: only valid during geometry emission */
 
