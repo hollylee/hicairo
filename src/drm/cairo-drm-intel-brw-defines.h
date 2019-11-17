@@ -77,6 +77,16 @@
 #define BRW_PIPE_CONTROL_GLOBAL_GTT    (1 << 2)
 #define BRW_PIPE_CONTROL_LOCAL_PGTT    (0 << 2)
 
+#define BRW_PIPE_CONTROL_CS_STALL               (1 << 20)
+#define BRW_PIPE_CONTROL_INSTRUCTION_INVALIDATE (1 << 11)
+#define BRW_PIPE_CONTROL_CONST_CACHE_INVALIDATE (1 << 3)
+#define BRW_PIPE_CONTROL_DATA_CACHE_FLUSH       (1 << 5)
+#define BRW_PIPE_CONTROL_DEPTH_CACHE_FLUSH      (1 << 0)
+#define BRW_PIPE_CONTROL_VF_CACHE_INVALIDATE    (1 << 4)
+#define BRW_PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE   (1 << 10) /* GM45+ only */
+#define BRW_PIPE_CONTROL_RENDER_TARGET_FLUSH        (1 << 12)
+
+
 #define _3DPRIM_POINTLIST         0x01
 #define _3DPRIM_LINELIST          0x02
 #define _3DPRIM_LINESTRIP         0x03
@@ -773,6 +783,7 @@
 #define CMD_VERTEX_ELEMENT            0x7809
 #define CMD_INDEX_BUFFER              0x780a
 #define CMD_VF_STATISTICS             0x780b
+#define CMD_3DSTATE_CC_STATE_POINTERS 0x780e
 
 #define CMD_DRAW_RECT                 0x7900
 #define CMD_BLEND_CONSTANT_COLOR      0x7901
