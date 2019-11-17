@@ -1090,7 +1090,7 @@ decode_3d_i965 (struct debug_stream *stream)
 	{ 0x6001, 2, 2, "CS_URB_STATE" },
 	{ 0x6002, 2, 2, "CONSTANT_BUFFER" },
 	{ 0x6101, 6, 6, "STATE_BASE_ADDRESS" },
-	{ 0x6102, 2, 2 , "STATE_SIP" },
+	{ 0x6102, 2, 2, "STATE_SIP" },
 	{ 0x6104, 1, 1, "3DSTATE_PIPELINE_SELECT" },
 	{ 0x680b, 1, 1, "3DSTATE_VF_STATISTICS" },
 	{ 0x6904, 1, 1, "3DSTATE_PIPELINE_SELECT" },
@@ -1100,6 +1100,7 @@ decode_3d_i965 (struct debug_stream *stream)
 	{ 0x7808, 5, 257, "3DSTATE_VERTEX_BUFFERS" },
 	{ 0x7809, 3, 256, "3DSTATE_VERTEX_ELEMENTS" },
 	{ 0x780a, 3, 3, "3DSTATE_INDEX_BUFFER" },
+	{ 0x780e, 2, 2, "3DSTATE_CC_STATE_POINTERS" },
 	{ 0x7900, 4, 4, "3DSTATE_DRAWING_RECTANGLE" },
 	{ 0x7901, 5, 5, "3DSTATE_CONSTANT_COLOR" },
 	{ 0x7905, 5, 7, "3DSTATE_DEPTH_BUFFER" },
@@ -1108,6 +1109,7 @@ decode_3d_i965 (struct debug_stream *stream)
 	{ 0x7908, 3, 3, "3DSTATE_LINE_STIPPLE" },
 	{ 0x7909, 2, 2, "3DSTATE_GLOBAL_DEPTH_OFFSET_CLAMP" },
 	{ 0x790a, 3, 3, "3DSTATE_AA_LINE_PARAMETERS" },
+	{ 0x7a00, 4, 6, "PIPE_CONTROL" },
 	{ 0x7b00, 6, 6, "3DPRIMITIVE" },
     }, *opcode_3d;
 
