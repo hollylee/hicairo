@@ -149,39 +149,40 @@ _cairo_drm_device_get_internal (struct udev_device *device, int fd)
 	uint32_t vendor_id;
 	uint32_t chip_id;
 	cairo_drm_device_create_func_t create_func;
+	const char* chip_name;
     } driver_map[] = {
-	{ 0x8086, 0x29a2, _cairo_drm_i965_device_create }, /* I965_G */
-	{ 0x8086, 0x2982, _cairo_drm_i965_device_create }, /* G35_G */
-	{ 0x8086, 0x2992, _cairo_drm_i965_device_create }, /* I965_Q */
-	{ 0x8086, 0x2972, _cairo_drm_i965_device_create }, /* I946_GZ */
-	{ 0x8086, 0x2a02, _cairo_drm_i965_device_create }, /* I965_GM */
-	{ 0x8086, 0x2a12, _cairo_drm_i965_device_create }, /* I965_GME */
-	{ 0x8086, 0x2e02, _cairo_drm_i965_device_create }, /* IGD_E_G */
-	{ 0x8086, 0x2e22, _cairo_drm_i965_device_create }, /* G45_G */
-	{ 0x8086, 0x2e12, _cairo_drm_i965_device_create }, /* Q45_G */
-	{ 0x8086, 0x2e32, _cairo_drm_i965_device_create }, /* G41_G */
-	{ 0x8086, 0x2a42, _cairo_drm_i965_device_create }, /* GM45_GM */
-	{ 0x8086, 0x0412, _cairo_drm_i965_device_create }, /* GT2 */
+	{ 0x8086, 0x29a2, _cairo_drm_i965_device_create, "Intel(R) 965G (I965_G/i965)" },
+	{ 0x8086, 0x2982, _cairo_drm_i965_device_create, "Intel(R) 965G (G35_G/i965)" },
+	{ 0x8086, 0x2992, _cairo_drm_i965_device_create, "Intel(R) 965Q (I965_Q/i965)" },
+	{ 0x8086, 0x2972, _cairo_drm_i965_device_create, "Intel(R) 946GZ (I946_GZ/i965)" },
+	{ 0x8086, 0x2a02, _cairo_drm_i965_device_create, "Intel(R) 965GM (I965_GM/i965)" },
+	{ 0x8086, 0x2a12, _cairo_drm_i965_device_create, "Intel(R) 965GME/GLE (I965_GME/i965)" },
+	{ 0x8086, 0x2e02, _cairo_drm_i965_device_create, "Intel(R) Integrated Graphics Device (IGD_E_G/g4x)" },
+	{ 0x8086, 0x2e22, _cairo_drm_i965_device_create, "Intel(R) G45/G43 (G45_G/g4x" },
+	{ 0x8086, 0x2e12, _cairo_drm_i965_device_create, "Intel(R) Q45/Q43 (Q45_G/g4x)" },
+	{ 0x8086, 0x2e32, _cairo_drm_i965_device_create, "Intel(R) G41 (G41_G/g4x)" },
+	{ 0x8086, 0x2a42, _cairo_drm_i965_device_create, "Mobile Intel® GM45 Express Chipset (GM45_G/g4x)" },
+	{ 0x8086, 0x0412, _cairo_drm_i965_device_create, "Haswell Desktop (GT2/hsw_gt2)" },
 
-	{ 0x8086, 0x2582, _cairo_drm_i915_device_create }, /* I915_G */
-	{ 0x8086, 0x2592, _cairo_drm_i915_device_create }, /* I915_GM */
-	{ 0x8086, 0x258a, _cairo_drm_i915_device_create }, /* E7221_G */
-	{ 0x8086, 0x2772, _cairo_drm_i915_device_create }, /* I945_G */
-	{ 0x8086, 0x27a2, _cairo_drm_i915_device_create }, /* I945_GM */
-	{ 0x8086, 0x27ae, _cairo_drm_i915_device_create }, /* I945_GME */
-	{ 0x8086, 0x29c2, _cairo_drm_i915_device_create }, /* G33_G */
-	{ 0x8086, 0x29b2, _cairo_drm_i915_device_create }, /* Q35_G */
-	{ 0x8086, 0x29d2, _cairo_drm_i915_device_create }, /* Q33_G */
-	{ 0x8086, 0xa011, _cairo_drm_i915_device_create }, /* IGD_GM */
-	{ 0x8086, 0xa001, _cairo_drm_i915_device_create }, /* IGD_G */
+	{ 0x8086, 0x2582, _cairo_drm_i915_device_create, "Intel(R) 915G (I915_G/i915)" },
+	{ 0x8086, 0x2592, _cairo_drm_i915_device_create, "Intel(R) 915GM (I915_GM/i915)" },
+	{ 0x8086, 0x258a, _cairo_drm_i915_device_create, "Intel(R) E7221G (E7221_G/i915)" },
+	{ 0x8086, 0x2772, _cairo_drm_i915_device_create, "Intel(R) 945G (I945_G/i915)" },
+	{ 0x8086, 0x27a2, _cairo_drm_i915_device_create, "Intel(R) 945GM (I945_GM/i915)" },
+	{ 0x8086, 0x27ae, _cairo_drm_i915_device_create, "Intel(R) 945GME (I945_GME/i915)" },
+	{ 0x8086, 0x29c2, _cairo_drm_i915_device_create, "Intel(R) G33 (G33_G/i915)" },
+	{ 0x8086, 0x29b2, _cairo_drm_i915_device_create, "Intel(R) Q35 (Q35_G/i915)" },
+	{ 0x8086, 0x29d2, _cairo_drm_i915_device_create, "Intel(R) Q33 (Q33_G/i915)" },
+	{ 0x8086, 0xa011, _cairo_drm_i915_device_create, "Intel(R) Pineview M (IGD_GM/i915)" },
+	{ 0x8086, 0xa001, _cairo_drm_i915_device_create, "Intel(R) Pineview (IGD_G/i915)" },
 
 	/* XXX i830 */
 
-	{ 0x8086, ~0, _cairo_drm_intel_device_create },
+	{ 0x8086, ~0, _cairo_drm_intel_device_create, "Fallback for other Intel Graphics Devices" },
 
-	{ 0x1002, ~0, _cairo_drm_radeon_device_create },
+	{ 0x1002, ~0, _cairo_drm_radeon_device_create, "Fallback for AMD Radeon Graphics Devices" },
 #if CAIRO_HAS_GALLIUM_SURFACE
-	{ ~0, ~0, _cairo_drm_gallium_device_create },
+	{ ~0, ~0, _cairo_drm_gallium_device_create, "Gallium (not completed)" },
 #endif
     };
 
@@ -250,6 +251,9 @@ _cairo_drm_device_get_internal (struct udev_device *device, int fd)
 	    goto DONE;
 	}
     }
+
+    fprintf (stderr, "hiCairo: found a device with vendor_id(%X), chip_id(%X): %s\n",
+                vendor_id, chip_id, driver_map[i].chip_name);
 
     dev = driver_map[i].create_func (fd, devid, vendor_id, chip_id);
     /* VW: use path as the flag that indicates fd is newly opened */
