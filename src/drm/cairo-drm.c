@@ -162,7 +162,7 @@ _cairo_drm_device_get_internal (struct udev_device *device, int fd)
 	{ 0x8086, 0x2e12, _cairo_drm_i965_device_create, "Intel(R) Q45/Q43 (Q45_G/g4x)" },
 	{ 0x8086, 0x2e32, _cairo_drm_i965_device_create, "Intel(R) G41 (G41_G/g4x)" },
 	{ 0x8086, 0x2a42, _cairo_drm_i965_device_create, "Mobile Intel® GM45 Express Chipset (GM45_G/g4x)" },
-	{ 0x8086, 0x0412, _cairo_drm_i965_device_create, "Haswell Desktop (GT2/hsw_gt2)" },
+	// VW { 0x8086, 0x0412, _cairo_drm_i965_device_create, "Haswell Desktop (GT2/hsw_gt2)" },
 
 	{ 0x8086, 0x2582, _cairo_drm_i915_device_create, "Intel(R) 915G (I915_G/i915)" },
 	{ 0x8086, 0x2592, _cairo_drm_i915_device_create, "Intel(R) 915GM (I915_GM/i915)" },
