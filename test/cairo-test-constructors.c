@@ -558,6 +558,8 @@ extern void _register_zero_mask (void);
 extern void _register_pthread_same_source (void);
 extern void _register_pthread_show_text (void);
 extern void _register_pthread_similar (void);
+extern void _register_egl_oversized_surface (void);
+extern void _register_egl_surface_source (void);
 extern void _register_pdf_features (void);
 extern void _register_pdf_mime_data (void);
 extern void _register_pdf_surface_source (void);
@@ -1131,6 +1133,8 @@ _cairo_test_runner_register_tests (void)
     _register_pthread_same_source ();
     _register_pthread_show_text ();
     _register_pthread_similar ();
+    _register_egl_oversized_surface ();
+    _register_egl_surface_source ();
     _register_pdf_features ();
     _register_pdf_mime_data ();
     _register_pdf_surface_source ();

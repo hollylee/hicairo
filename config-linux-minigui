@@ -12,4 +12,6 @@
     --enable-minigui=yes \
     --enable-drm=yes \
     --enable-gl=no \
-    --enable-egl=no
+    --enable-glesv2=no \
+    --enable-glesv3=yes \
+    --enable-egl=yes
