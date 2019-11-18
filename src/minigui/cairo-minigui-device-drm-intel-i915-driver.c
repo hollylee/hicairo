@@ -686,7 +686,7 @@ static int i915_clear_buffer (DriDriver *driver,
 
     if (drm_intel_bufmgr_check_aperture_space(aper_array,
                 TABLESIZE(aper_array)) != 0) {
-        intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+        intel_batchbuffer_flush(driver, I915_EXEC_BLT);
     }
 
     intel_batchbuffer_begin(driver, 6);
@@ -699,7 +699,7 @@ static int i915_clear_buffer (DriDriver *driver,
             0);
     intel_batchbuffer_emit_dword(driver, clear_value);
     intel_batchbuffer_advance(driver);
-    intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+    intel_batchbuffer_flush(driver, I915_EXEC_BLT);
 
     intel_batchbuffer_emit_mi_flush(driver);
     return 0;
@@ -757,7 +757,7 @@ static int i915_copy_blit (DriDriver *driver,
         aper_array[2] = src_bo;
 
         if (dri_bufmgr_check_aperture_space(aper_array, 3) != 0) {
-            intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+            intel_batchbuffer_flush(driver, I915_EXEC_BLT);
             pass++;
         } else
             break;
@@ -819,7 +819,7 @@ static int i915_copy_blit (DriDriver *driver,
             I915_GEM_DOMAIN_RENDER, 0,
             src_offset);
     intel_batchbuffer_advance(driver);
-    intel_batchbuffer_flush(driver, I915_EXEC_RENDER);
+    intel_batchbuffer_flush(driver, I915_EXEC_BLT);
 
     intel_batchbuffer_emit_mi_flush(driver);
     return -1;
