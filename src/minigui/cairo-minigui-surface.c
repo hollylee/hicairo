@@ -71,12 +71,6 @@
  * Since: 2.18
  **/
 
-static cairo_device_t *
-_cairo_minigui_device_get (void)
-{
-    return NULL;
-}
-
 static const cairo_surface_backend_t cairo_minigui_surface_backend;
 
 typedef struct _cairo_minigui_surface {
@@ -133,6 +127,10 @@ _cairo_format_from_dc (HDC dc)
         return CAIRO_FORMAT_RGB16_565;
         break;
 
+    case 24:
+        return CAIRO_FORMAT_RGB24;
+        break;
+
     case 32:
         if (GetGDCapability(dc, GDCAP_AMASK)) {
             return CAIRO_FORMAT_ARGB32;
@@ -141,6 +139,7 @@ _cairo_format_from_dc (HDC dc)
             return CAIRO_FORMAT_RGB24;
         }
         break;
+
     default:
         break;
     }
@@ -224,6 +223,62 @@ construct_bmp_from_dc (HDC memdc, PBITMAP bmp)
     return bmp;
 }
 
+static HDC
+_create_memdc (cairo_format_t   format,
+               int              width,
+               int              height)
+{
+    HDC dc = HDC_INVALID;
+
+    switch (format) {
+    case CAIRO_FORMAT_RGB16_565:
+        dc = CreateMemDC (width, height,
+                        16, MEMDC_FLAG_HWSURFACE,
+                        0xF800, 0x07E0, 0x001F, 0x0000);
+        break;
+
+    case CAIRO_FORMAT_RGB24:
+        /* We treat RGB24 format like 32bpp. */
+        dc = CreateMemDC (width, height,
+                        32, MEMDC_FLAG_HWSURFACE,
+                        0x00FF0000, 0x0000FF00, 0x000000FF, 0x00000000);
+        break;
+
+    case CAIRO_FORMAT_ARGB32:
+        dc = CreateMemDC (width, height,
+                        32, MEMDC_FLAG_HWSURFACE,
+                        0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+        break;
+
+    case CAIRO_FORMAT_A8:
+        dc = CreateMemDC (width, height,
+                        8, MEMDC_FLAG_HWSURFACE,
+                        0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+        {
+            int i;
+            GAL_Color cmap [256];
+
+            for (i = 0; i < 256; i++) {
+                cmap[i].r = i;
+                cmap[i].g = i;
+                cmap[i].b = i;
+                cmap[i].a = 0;
+            }
+            SetPalette (dc, 0, 256, cmap);
+        }
+        break;
+
+    case CAIRO_FORMAT_RGB30:
+    case CAIRO_FORMAT_RGB96F:
+    case CAIRO_FORMAT_RGBA128F:
+    case CAIRO_FORMAT_A1:
+    case CAIRO_FORMAT_INVALID:
+        return HDC_SCREEN;
+    }
+
+    return dc;
+}
+
 static cairo_status_t
 _create_memdc_and_bitmap (cairo_minigui_surface_t *surface,
                           cairo_format_t           format,
@@ -233,57 +288,14 @@ _create_memdc_and_bitmap (cairo_minigui_surface_t *surface,
                           int                     *rowstride_out)
 {
     cairo_status_t status;
-    int i;
 
-    surface->dc = HDC_INVALID;
     width = (width <= 0) ? 1 : width;
     height = (height <= 0) ? 1 : height;
+    surface->dc = _create_memdc (format, width, height);
 
-    switch (format) {
-    case CAIRO_FORMAT_RGB16_565:
-        surface->dc = CreateMemDC (width, height,
-                        16, MEMDC_FLAG_HWSURFACE,
-                        0xF800, 0x07E0, 0x001F, 0x0000);
-        break;
-
-    case CAIRO_FORMAT_RGB24:
-        /* We treat RGB24 format like 32bpp. */
-        surface->dc = CreateMemDC (width, height,
-                        32, MEMDC_FLAG_HWSURFACE,
-                        0x00FF0000, 0x0000FF00, 0x000000FF, 0x00000000);
-        break;
-
-    case CAIRO_FORMAT_ARGB32:
-        surface->dc = CreateMemDC (width, height,
-                        32, MEMDC_FLAG_HWSURFACE,
-                        0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-        break;
-
-    case CAIRO_FORMAT_A8:
-        surface->dc = CreateMemDC (width, height,
-                        8, MEMDC_FLAG_HWSURFACE,
-                        0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-        {
-            GAL_Color cmap [256];
-            for (i = 0; i < 256; i++) {
-                cmap[i].r = i;
-                cmap[i].g = i;
-                cmap[i].b = i;
-                cmap[i].a = 0;
-            }
-            SetPalette (surface->dc, 0, 256, cmap);
-        }
-        break;
-
-    case CAIRO_FORMAT_RGB30:
-    case CAIRO_FORMAT_RGB96F:
-    case CAIRO_FORMAT_RGBA128F:
-    case CAIRO_FORMAT_A1:
-    case CAIRO_FORMAT_INVALID:
+    if (surface->dc == HDC_SCREEN)
         return CAIRO_STATUS_INVALID_FORMAT;
-    }
-
-    if (surface->dc == HDC_INVALID)
+    else if (surface->dc == HDC_INVALID)
         goto FAIL;
 
     construct_bmp_from_dc (surface->dc, &surface->bitmap);
@@ -311,10 +323,9 @@ _cairo_minigui_surface_create_internal (cairo_format_t  format,
                                         int             height)
 {
     cairo_status_t status;
-    cairo_device_t *device;
     cairo_minigui_surface_t *surface;
-    unsigned char *bits;
-    int rowstride;
+    unsigned char *bits = NULL;
+    int rowstride = 0;
 
     surface = _cairo_malloc (sizeof (*surface));
     if (surface == NULL)
@@ -349,15 +360,11 @@ _cairo_minigui_surface_create_internal (cairo_format_t  format,
     surface->had_simple_clip = FALSE;
 #endif
 
-    device = _cairo_minigui_device_get ();
-
     _cairo_surface_init (&surface->base,
              &cairo_minigui_surface_backend,
-             device,
+             NULL,
              _cairo_content_from_format (format),
              FALSE); /* is_vector */
-
-    cairo_device_destroy (device);
 
     return &surface->base;
 
@@ -371,26 +378,86 @@ FAIL:
 }
 
 static cairo_surface_t *
+_cairo_minigui_surface_create_on_dc (cairo_device_t* device,
+                                     HDC             memdc,
+                                     cairo_format_t  format,
+                                     cairo_bool_t    is_new)
+{
+    cairo_status_t status;
+    cairo_minigui_surface_t *surface;
+
+    surface = _cairo_malloc (sizeof (*surface));
+    if (surface == NULL)
+        return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+
+    surface->dc = memdc;
+    surface->new_memdc = is_new;
+    surface->format = format;
+    surface->fallback = NULL;
+
+    construct_bmp_from_dc (surface->dc, &surface->bitmap);
+    surface->image = cairo_image_surface_create_for_data (surface->bitmap.bmBits,
+                                format,
+                                surface->bitmap.bmWidth,
+                                surface->bitmap.bmHeight,
+                                surface->bitmap.bmPitch);
+
+    status = surface->image->status;
+    if (status)
+        goto FAIL;
+
+    _cairo_image_surface_set_parent (to_image_surface(surface->image),
+                     &surface->base);
+
+    surface->extents.x = 0;
+    surface->extents.y = 0;
+    surface->extents.width = surface->bitmap.bmWidth;
+    surface->extents.height = surface->bitmap.bmHeight;
+
+#ifdef _SAVE_INITIAL_CLIP
+    surface->initial_clip_rgn = NULL;
+    surface->had_simple_clip = FALSE;
+#endif
+
+    _cairo_surface_init (&surface->base,
+             &cairo_minigui_surface_backend,
+             device,
+             _cairo_content_from_format (format),
+             FALSE); /* is_vector */
+
+    return &surface->base;
+
+FAIL:
+    free (surface);
+
+    return _cairo_surface_create_in_error (status);
+}
+
+static cairo_surface_t *
 _cairo_minigui_surface_create_similar (void            *abstract_src,
                                        cairo_content_t  content,
                                        int              width,
                                        int              height)
 {
+    cairo_device_t* device;
     cairo_minigui_surface_t *src = abstract_src;
     cairo_format_t format = _cairo_format_from_content (content);
     cairo_surface_t *new_surf = NULL;
 
+    device = cairo_surface_get_device ((cairo_surface_t*)abstract_src);
     if (!(content & CAIRO_CONTENT_ALPHA)) {
-        new_surf = cairo_minigui_surface_create_with_memdc (format,
-            width, height);
+        new_surf = cairo_minigui_surface_create_with_memdc (device,
+                format, width, height);
 
-        if (new_surf->status)
+        if (new_surf->status) {
+            cairo_surface_destroy (new_surf);
             new_surf = NULL;
+        }
     }
 
     if (new_surf == NULL) {
-        new_surf = cairo_minigui_surface_create_with_memdc2 (src->dc,
-            width, height);
+        new_surf = cairo_minigui_surface_create_with_memdc_similar (device,
+                        src->dc, width, height);
     }
 
     return new_surf;
@@ -725,35 +792,72 @@ static const cairo_surface_backend_t cairo_minigui_surface_backend = {
     _cairo_surface_fallback_glyphs,
 };
 
+#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRI)
+
+#include "cairo-drm.h"
+
+static void _destroy_memdc (void *data)
+{
+    _WRN_PRINTF("here\n");
+
+    HDC hdc = (HDC)data;
+
+    if (hdc != HDC_INVALID) {
+        DeleteMemDC(hdc);
+    }
+}
+
+static cairo_user_data_key_t _dc_key = { _MINIGUI_VERSION_CODE };
+
+/**
+ * cairo_drm_surface_get_minigui_dc:
+ * @surface: the cairo surface.
+ *
+ * Gets the DC associated with the surface.
+ *
+ * Return value: the DC or HDC_INVALID
+ *
+ * Since: 2.18
+ **/
+HDC
+cairo_drm_surface_get_minigui_dc (cairo_surface_t *surface)
+{
+    HDC dc = (HDC)cairo_surface_get_user_data (surface, &_dc_key);
+
+    if (dc == NULL)
+        return HDC_INVALID;
+
+    return dc;
+}
+
+#endif
+
 /**
  * cairo_minigui_surface_create:
+ * @device: the DRM device; can be NULL if not using DRM.
  * @hdc: the DC to create a surface for
  *
- * Creates a cairo surface that targets the given DC.  The DC will be
- * queried for its initial clip extents, and this will be used as the
- * size of the cairo surface.
+ * Creates a cairo surface that targets the given DC. If the given DC
+ * is not a memory DC or screen DC, this function will create a memory
+ * DC which is compatible to the DC first.
  *
- * Return value: the newly created surface, NULL on failure
- *
- * Note that the DC will be locked until you call cairo_surface_finish on
- * the surface.
+ * Return value: the newly created surface; it may be a DRM surface
+ * if the DC is allocated by MiniGUI DRI engine and @device is not NULL.
  *
  * Since: 2.18
  **/
 cairo_surface_t *
-cairo_minigui_surface_create (HDC hdc)
+cairo_minigui_surface_create (cairo_device_t *device, HDC hdc)
 {
-    cairo_minigui_surface_t *surface;
-    cairo_status_t status;
-    cairo_device_t *device;
     cairo_format_t format;
+    int width, height;
 
     if (hdc == HDC_INVALID) {
         return _cairo_surface_create_in_error (
-                        _cairo_error (CAIRO_STATUS_INVALID_VISUAL));
+                        _cairo_error (CAIRO_STATUS_INVALID_ARGUMENTS));
     }
 
-    format = _cairo_format_from_dc(hdc);
+    format = _cairo_format_from_dc (hdc);
     switch (format) {
     case CAIRO_FORMAT_RGB30:
     case CAIRO_FORMAT_RGB96F:
@@ -771,110 +875,115 @@ cairo_minigui_surface_create (HDC hdc)
         break;
     }
 
-    surface = _cairo_malloc (sizeof (*surface));
-    if (surface == NULL)
-        return _cairo_surface_create_in_error (
-                        _cairo_error (CAIRO_STATUS_NO_MEMORY));
+    width = (int)GetGDCapability (hdc, GDCAP_HPIXEL);
+    height = (int)GetGDCapability (hdc, GDCAP_VPIXEL);
 
-    status = _cairo_minigui_save_initial_clip (hdc, surface);
-    if (status) {
-        goto FAIL;
-    }
+    if (IsScreenDC (hdc) || IsMemDC (hdc)) {
+#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRI)
+        GHANDLE vh;
+        if (device && (vh = GetVideoHandle (hdc))) {
+            DriSurfaceInfo info;
+            if (driGetSurfaceInfo (vh, hdc, &info)) {
+                cairo_surface_t* drm_surface = NULL;
+                drm_surface = cairo_drm_surface_create_for_handle (device,
+                        info.handle, info.size,
+                        format, info.width, info.height, info.pitch);
 
-    if (hdc == HDC_SCREEN || IsMemDC(hdc)) {
-        construct_bmp_from_dc (hdc, &surface->bitmap);
-        surface->image = cairo_image_surface_create_for_data (
-                                surface->bitmap.bmBits, format,
-                                surface->bitmap.bmWidth,
-                                surface->bitmap.bmHeight,
-                                surface->bitmap.bmPitch);
-        status = surface->image->status;
-        if (status) {
-            goto FAIL;
+                if (cairo_surface_get_type (drm_surface) == CAIRO_SURFACE_TYPE_DRM) {
+                    cairo_surface_set_user_data (drm_surface, &_dc_key, (void*)hdc, NULL);
+                    return drm_surface;
+                }
+            }
         }
+#endif
 
-        _cairo_image_surface_set_parent (to_image_surface(surface->image),
-                     &surface->base);
+        return _cairo_minigui_surface_create_on_dc (device, hdc, format, FALSE);
     }
     else {
-        surface->image = NULL;
+        return cairo_minigui_surface_create_with_memdc (device, format, width, height);
     }
-
-    surface->fallback = NULL;
-    surface->format = format;
-    surface->dc = hdc;
-    surface->new_memdc = FALSE;
-
-    device = _cairo_minigui_device_get ();
-    _cairo_surface_init (&surface->base,
-             &cairo_minigui_surface_backend,
-             device,
-             _cairo_content_from_format (format),
-             FALSE); /* is_vector */
-
-    cairo_device_destroy (device);
-
-    return &surface->base;
-
-FAIL:
-    free (surface);
-    return _cairo_surface_create_in_error (status);
 }
 
 /**
  * cairo_minigui_surface_create_with_memdc:
+ * @device: the DRM device; can be NULL if not using DRM.
  * @format: format of pixels in the surface to create
  * @width: width of the surface, in pixels
  * @height: height of the surface, in pixels
  *
  * Creates a surface which is associated with a new memory DC.
  *
- * Return value: the newly created surface
+ * Return value: the newly created surface; it may be a DRM surface
+ * if the DC is allocated by MiniGUI DRI engine and @device is not NULL.
  *
  * Since: 2.18
  **/
 cairo_surface_t *
-cairo_minigui_surface_create_with_memdc (cairo_format_t format,
-                           int          width,
-                           int          height)
+cairo_minigui_surface_create_with_memdc (cairo_device_t * device,
+                            cairo_format_t format,
+                            int          width,
+                            int          height)
 {
-    switch (format) {
-    case CAIRO_FORMAT_RGB30:
-    case CAIRO_FORMAT_RGB96F:
-    case CAIRO_FORMAT_RGBA128F:
-    case CAIRO_FORMAT_A1:
-    case CAIRO_FORMAT_INVALID:
-    default:
+    HDC memdc;
+    width = (width <= 0) ? 1 : width;
+    height = (height <= 0) ? 1 : height;
+
+    memdc = _create_memdc (format, width, height);
+    if (memdc == HDC_SCREEN) {
         return _cairo_surface_create_in_error (
                         _cairo_error (CAIRO_STATUS_INVALID_FORMAT));
-
-    case CAIRO_FORMAT_A8:
-    case CAIRO_FORMAT_ARGB32:
-    case CAIRO_FORMAT_RGB24:
-    case CAIRO_FORMAT_RGB16_565:
-        break;
+    }
+    else if (memdc == HDC_INVALID) {
+        return _cairo_surface_create_in_error (
+                        _cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
-    return _cairo_minigui_surface_create_internal (format, width, height);
+#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRI)
+    if (device) {
+        GHANDLE vh = GetVideoHandle (memdc);
+        if (vh) {
+            DriSurfaceInfo info;
+            if (driGetSurfaceInfo (vh, memdc, &info)) {
+                cairo_surface_t* drm_surface = NULL;
+                drm_surface = cairo_drm_surface_create_for_handle (device,
+                        info.handle, info.size,
+                        format, info.width, info.height, info.pitch);
+
+                if (cairo_surface_get_type (drm_surface) == CAIRO_SURFACE_TYPE_DRM) {
+                    cairo_surface_set_user_data (drm_surface, &_dc_key, (void*)memdc, _destroy_memdc);
+                    return drm_surface;
+                }
+                else {
+                    cairo_surface_destroy (drm_surface);
+                }
+            }
+        }
+    }
+#endif
+
+    return _cairo_minigui_surface_create_on_dc (device, memdc, format, TRUE);
 }
 
 /**
- * cairo_minigui_surface_create_with_memdc2:
- * @ref_dc: a DC as the reference for pixel format
- * @width: width of the surface, in pixels
- * @height: height of the surface, in pixels
+ * cairo_minigui_surface_create_with_memdc_similar:
+ * @device: the DRM device; can be NULL if not using DRM.
+ * @ref_dc: a DC as the reference for pixel format.
+ * @width: width of the surface, in pixels.
+ * @height: height of the surface, in pixels.
  *
  * Creates a surface assoiciated with a new memory DC which
  * is compatible to the given DC but in the specified size.
  *
- * Return value: the newly created surface
+ * Return value: the newly created surface; it may be a DRM surface
+ * if the DC is allocated by MiniGUI DRI engine and @device is not NULL.
  *
  * Since: 2.18
  **/
 cairo_surface_t *
-cairo_minigui_surface_create_with_memdc2 (HDC ref_dc,
-                     int width,
-                     int height)
+cairo_minigui_surface_create_with_memdc_similar (cairo_device_t* device,
+                        HDC ref_dc,
+                        int width,
+                        int height)
 {
     cairo_format_t format;
 
@@ -883,8 +992,8 @@ cairo_minigui_surface_create_with_memdc2 (HDC ref_dc,
                         _cairo_error (CAIRO_STATUS_INVALID_VISUAL));
     }
 
-    format = _cairo_format_from_dc(ref_dc);
-    return _cairo_minigui_surface_create_internal (format,
+    format = _cairo_format_from_dc (ref_dc);
+    return cairo_minigui_surface_create_with_memdc (device, format,
                 width, height);
 }
 
