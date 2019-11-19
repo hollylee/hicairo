@@ -269,6 +269,16 @@ _cairo_drm_device_get_internal (struct udev_device *device, int fd)
         return &dev->base;
 }
 
+/**
+ * cairo_drm_device_get:
+ * @device: The udev device object of the DRI device.
+ *
+ * Returns the cairo device object for the given udev device.
+ *
+ * Return value: the pointer to the cairo device.
+ *
+ * Since: 2.18
+ **/
 cairo_device_t *
 cairo_drm_device_get (struct udev_device *device)
 {
@@ -276,6 +286,16 @@ cairo_drm_device_get (struct udev_device *device)
 }
 slim_hidden_def (cairo_drm_device_get);
 
+/**
+ * cairo_drm_device_get_for_fd:
+ * @fd: The file descriptor of the opened DRI device file.
+ *
+ * Returns the cairo device object for the given file descriptor.
+ *
+ * Return value: the pointer to the cairo device.
+ *
+ * Since: 2.18
+ **/
 cairo_device_t *
 cairo_drm_device_get_for_fd (int fd)
 {
@@ -303,8 +323,8 @@ cairo_drm_device_get_for_fd (int fd)
 }
 slim_hidden_def (cairo_drm_device_get_for_fd);
 
-cairo_device_t *
-cairo_drm_device_default (void)
+static cairo_device_t *
+_cairo_drm_device_default_internal (void)
 {
     struct udev *udev;
     struct udev_enumerate *e;
@@ -349,6 +369,49 @@ cairo_drm_device_default (void)
     cairo_device_destroy (dev); /* owned by _cairo_drm_default_device */
     return dev;
 }
+
+#ifdef CAIRO_HAS_MINIGUI_SURFACE
+#include <minigui/common.h>
+#include <minigui/minigui.h>
+#include <minigui/gdi.h>
+#endif
+
+/**
+ * cairo_drm_device_default:
+ *
+ * Returns the default DRM device. If MiniGUI backend is enabled,
+ * this function will try to use the DRI device file descriptor
+ * opened by MiniGUI to create the cairo device. Otherwise,
+ * this function will try to open the default DRI device and
+ * return the cairo device.
+ *
+ * Return value: the pointer to the cairo device.
+ *
+ * Since: 2.18
+ **/
+cairo_device_t *
+cairo_drm_device_default (void)
+{
+#if defined(CAIRO_HAS_MINIGUI_SURFACE) && defined(_MGGAL_DRI)
+    GHANDLE vh;
+    int fd;
+
+    vh = GetVideoHandle (HDC_SCREEN);
+    if (!vh) {
+        goto fallback;
+    }
+
+    fd = driGetDeviceFD(vh);
+    if (fd < 0) {
+        goto fallback;
+    }
+
+    return cairo_drm_device_get_for_fd (fd);
+#endif
+
+ fallback:
+    return _cairo_drm_device_default_internal ();
+}
 slim_hidden_def (cairo_drm_device_default);
 
 void
@@ -361,6 +424,15 @@ _cairo_drm_device_reset_static_data (void)
     }
 }
 
+/**
+ * cairo_drm_device_get_fd:
+ *
+ * Returns the file descriptor which corresponds to the cairo device.
+ *
+ * Return value: the file descriptor of the DRI device, -1 on error.
+ *
+ * Since: 2.18
+ **/
 int
 cairo_drm_device_get_fd (cairo_device_t *abstract_device)
 {
@@ -379,6 +451,14 @@ _cairo_drm_device_fini (cairo_drm_device_t *device)
 	close (device->fd);
 }
 
+/**
+ * cairo_drm_device_throttle:
+ * @abstract_device: The cairo device object for the DRI device.
+ *
+ * Throttles the cairo device object.
+ *
+ * Since: 2.18
+ **/
 void
 cairo_drm_device_throttle (cairo_device_t *abstract_device)
 {
@@ -395,6 +475,7 @@ cairo_drm_device_throttle (cairo_device_t *abstract_device)
     if (unlikely (status))
 	_cairo_status_set_error (&device->base.status, status);
 }
+slim_hidden_def (cairo_drm_device_throttle);
 
 cairo_bool_t
 _cairo_drm_size_is_valid (cairo_device_t *abstract_device,
