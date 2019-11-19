@@ -308,6 +308,17 @@ cairo_drm_surface_enable_scan_out (cairo_surface_t *abstract_surface)
     return device->surface.enable_scan_out (abstract_surface);
 }
 
+/**
+ * cairo_drm_surface_get_handle:
+ * @abstract_surface: The cairo DRM surface.
+ *
+ * Checks and returns the handle of the DRM surface which corresponds to
+ * the cairo DRM surface.
+ *
+ * Return value: the DRM surface handle; 0 on error.
+ *
+ * Since: 2.18
+ **/
 unsigned int
 cairo_drm_surface_get_handle (cairo_surface_t *abstract_surface)
 {
@@ -331,6 +342,17 @@ _cairo_drm_surface_flink (void *abstract_surface)
 				surface->bo);
 }
 
+/**
+ * cairo_drm_surface_get_name:
+ * @abstract_surface: The cairo DRM surface.
+ *
+ * Checks and returns the name of the DRM surface which corresponds to
+ * the cairo DRM surface.
+ *
+ * Return value: the name of the DRM surface; 0 on error.
+ *
+ * Since: 2.18
+ **/
 unsigned int
 cairo_drm_surface_get_name (cairo_surface_t *abstract_surface)
 {
@@ -362,6 +384,16 @@ cairo_drm_surface_get_name (cairo_surface_t *abstract_surface)
     return surface->bo->name;
 }
 
+/**
+ * cairo_drm_surface_get_format:
+ * @abstract_surface: The cairo DRM surface.
+ *
+ * Checks and returns the format of the cairo DRM surface.
+ *
+ * Return value: the format of the DRM surface.
+ *
+ * Since: 2.18
+ **/
 cairo_format_t
 cairo_drm_surface_get_format (cairo_surface_t *abstract_surface)
 {
@@ -374,6 +406,16 @@ cairo_drm_surface_get_format (cairo_surface_t *abstract_surface)
     return surface->format;
 }
 
+/**
+ * cairo_drm_surface_get_width:
+ * @abstract_surface: The cairo DRM surface.
+ *
+ * Checks and returns the width of the cairo DRM surface.
+ *
+ * Return value: the width of the DRM surface.
+ *
+ * Since: 2.18
+ **/
 int
 cairo_drm_surface_get_width (cairo_surface_t *abstract_surface)
 {
@@ -386,6 +428,16 @@ cairo_drm_surface_get_width (cairo_surface_t *abstract_surface)
     return surface->width;
 }
 
+/**
+ * cairo_drm_surface_get_height:
+ * @abstract_surface: The cairo DRM surface.
+ *
+ * Checks and returns the height of the cairo DRM surface.
+ *
+ * Return value: the height of the DRM surface.
+ *
+ * Since: 2.18
+ **/
 int
 cairo_drm_surface_get_height (cairo_surface_t *abstract_surface)
 {
@@ -398,6 +450,17 @@ cairo_drm_surface_get_height (cairo_surface_t *abstract_surface)
     return surface->height;
 }
 
+/**
+ * cairo_drm_surface_get_stride:
+ * @abstract_surface: The cairo DRM surface.
+ *
+ * Checks and returns the row stride (pitch) of the cairo DRM surface
+ * in bytes.
+ *
+ * Return value: the row stride of the DRM surface.
+ *
+ * Since: 2.18
+ **/
 int
 cairo_drm_surface_get_stride (cairo_surface_t *abstract_surface)
 {
@@ -411,6 +474,16 @@ cairo_drm_surface_get_stride (cairo_surface_t *abstract_surface)
 }
 
 /* XXX drm or general surface layer? naming? */
+/**
+ * cairo_drm_surface_map_to_image:
+ * @abstract_surface: The cairo DRM surface.
+ *
+ * Maps a cairo DRM surface and returns an image surface object.
+ *
+ * Return value: the created image surface object.
+ *
+ * Since: 2.18
+ **/
 cairo_surface_t *
 cairo_drm_surface_map_to_image (cairo_surface_t *abstract_surface)
 {
@@ -436,6 +509,15 @@ cairo_drm_surface_map_to_image (cairo_surface_t *abstract_surface)
     return cairo_surface_reference (device->surface.map_to_image (surface));
 }
 
+/**
+ * cairo_drm_surface_unmap:
+ * @abstract_surface: The cairo DRM surface.
+ * @image: The mapped image surface.
+ *
+ * Unmaps a cairo DRM surface and destroies the mapped image surface object.
+ *
+ * Since: 2.18
+ **/
 void
 cairo_drm_surface_unmap (cairo_surface_t *abstract_surface,
 	                 cairo_surface_t *image)
@@ -459,3 +541,4 @@ cairo_drm_surface_unmap (cairo_surface_t *abstract_surface,
     if (--surface->map_count == 0)
 	cairo_surface_flush (&surface->base);
 }
+
