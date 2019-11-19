@@ -393,11 +393,11 @@ static DriSurfaceBuffer* i915_create_buffer (DriDriver *driver,
     return &buffer->base;
 }
 
+/* TODO: check for duplicated creation of DriSurfaceBuffer */
 static DriSurfaceBuffer* i915_create_buffer_from_handle (DriDriver *driver,
             uint32_t handle, unsigned long size, uint32_t drm_format,
             unsigned int width, unsigned int height, unsigned int pitch)
 {
-#if 0 // TODO: add drm_intel_bo_gem_create_from_handle
     drm_intel_bo *buffer_object;
     my_surface_buffer *buffer;
     int bpp, cpp;
@@ -408,7 +408,7 @@ static DriSurfaceBuffer* i915_create_buffer_from_handle (DriDriver *driver,
     }
 
     buffer_object = drm_intel_bo_gem_create_from_handle (driver->manager,
-            handle, size);
+            "bo from handle", handle, size);
     if (buffer_object == NULL) {
         _ERR_PRINTF ("Could not open GEM object with handle %u for frame buffer: %m\n",
                 handle);
@@ -434,9 +434,6 @@ static DriSurfaceBuffer* i915_create_buffer_from_handle (DriDriver *driver,
     buffer->base.cpp = cpp;
     buffer->added_fb = 1;
     return &buffer->base;
-#else
-    return NULL;
-#endif
 }
 
 static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
@@ -445,7 +442,6 @@ static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
 {
     drm_intel_bo *buffer_object;
     my_surface_buffer *buffer;
-    char sz_name [64];
     int bpp, cpp;
 
     if (drm_format_to_bpp(drm_format, &bpp, &cpp) == 0) {
@@ -453,9 +449,8 @@ static DriSurfaceBuffer* i915_create_buffer_from_name (DriDriver *driver,
         return NULL;
     }
 
-    sprintf(sz_name, "buffer %u", name);
     buffer_object = drm_intel_bo_gem_create_from_name (driver->manager,
-            sz_name, name);
+            "bo from name", name);
     if (buffer_object == NULL) {
         _ERR_PRINTF ("Could not open GEM object with name %u for frame buffer: %m\n",
                 name);
