@@ -195,7 +195,6 @@ CAIRO_ENABLE_SURFACE_BACKEND(minigui, MiniGUI, auto, [
 		    [minigui_REQUIRES=""
 		     use_minigui="no (requires MiniGUI development library version 4.0.3 or later )"
 		     ])
-  PKG_CHECK_MODULES(drm_minigui, [libdrm_minigui >= 2.5.0], minigui_NONPKGCONFIG_LIBS="-ldrm_minigui")
 ])
 
 dnl ===========================================================================
