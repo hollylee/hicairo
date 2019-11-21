@@ -190,10 +190,10 @@ CAIRO_ENABLE_FUNCTIONS(xcb_shm, XCB/SHM, auto, [
 dnl ===========================================================================
 
 CAIRO_ENABLE_SURFACE_BACKEND(minigui, MiniGUI, auto, [
-  minigui_REQUIRES="minigui >= 4.0.3"
+  minigui_REQUIRES="minigui >= 4.1.0"
   PKG_CHECK_MODULES(minigui, $minigui_REQUIRES, ,
 		    [minigui_REQUIRES=""
-		     use_minigui="no (requires MiniGUI development library version 4.0.3 or later )"
+		     use_minigui="no (requires MiniGUI development library version 4.1.0 or later )"
 		     ])
 ])
 

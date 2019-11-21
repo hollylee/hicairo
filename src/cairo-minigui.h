@@ -63,7 +63,7 @@ cairo_minigui_surface_get_dc (cairo_surface_t *surface);
 cairo_public cairo_surface_t *
 cairo_minigui_surface_get_image (cairo_surface_t *surface);
 
-#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRI)
+#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRM)
 cairo_public HDC
 cairo_drm_surface_get_minigui_dc (cairo_surface_t *surface);
 #endif

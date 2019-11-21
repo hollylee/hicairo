@@ -392,7 +392,7 @@ _cairo_drm_device_default_internal (void)
 cairo_device_t *
 cairo_drm_device_default (void)
 {
-#if defined(CAIRO_HAS_MINIGUI_SURFACE) && defined(_MGGAL_DRI)
+#if defined(CAIRO_HAS_MINIGUI_SURFACE) && defined(_MGGAL_DRM)
     GHANDLE vh;
     int fd;
 
@@ -401,7 +401,7 @@ cairo_drm_device_default (void)
         goto fallback;
     }
 
-    fd = driGetDeviceFD(vh);
+    fd = drmGetDeviceFD(vh);
     if (fd < 0) {
         goto fallback;
     }

@@ -792,7 +792,7 @@ static const cairo_surface_backend_t cairo_minigui_surface_backend = {
     _cairo_surface_fallback_glyphs,
 };
 
-#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRI)
+#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRM)
 
 #include "cairo-drm.h"
 
@@ -879,11 +879,11 @@ cairo_minigui_surface_create (cairo_device_t *device, HDC hdc)
     height = (int)GetGDCapability (hdc, GDCAP_VPIXEL);
 
     if (IsScreenDC (hdc) || IsMemDC (hdc)) {
-#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRI)
+#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRM)
         GHANDLE vh;
         if (device && (vh = GetVideoHandle (hdc))) {
-            DriSurfaceInfo info;
-            if (driGetSurfaceInfo (vh, hdc, &info)) {
+            DrmSurfaceInfo info;
+            if (drmGetSurfaceInfo (vh, hdc, &info)) {
                 cairo_surface_t* drm_surface = NULL;
                 drm_surface = cairo_drm_surface_create_for_handle (device,
                         info.handle, info.size,
@@ -938,12 +938,12 @@ cairo_minigui_surface_create_with_memdc (cairo_device_t * device,
                         _cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
-#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRI)
+#if defined(CAIRO_HAS_DRM_SURFACE) && defined(_MGGAL_DRM)
     if (device) {
         GHANDLE vh = GetVideoHandle (memdc);
         if (vh) {
-            DriSurfaceInfo info;
-            if (driGetSurfaceInfo (vh, memdc, &info)) {
+            DrmSurfaceInfo info;
+            if (drmGetSurfaceInfo (vh, memdc, &info)) {
                 cairo_surface_t* drm_surface = NULL;
                 drm_surface = cairo_drm_surface_create_for_handle (device,
                         info.handle, info.size,
